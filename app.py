@@ -4,119 +4,190 @@ Endpoint: /prepare_ligand
 """
 
 import os
+import re
 import tempfile
+from typing import Optional
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 import uvicorn
 
-# Meeko imports (usando la API correcta)
 from meeko import MoleculePreparation, PDBQTWriterLegacy
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-app = FastAPI(title="LigandHub API", description="Ligand preparation for AutoDock Vina using Meeko")
+app = FastAPI(
+    title="LigandHub API",
+    description="Ligand preparation for AutoDock Vina using Meeko"
+)
 
-# Enable CORS for frontend (GitHub Pages)
+# Reemplaza esto por la URL real de tu frontend en GitHub Pages
+ALLOWED_ORIGINS = [
+    "https://TU-USUARIO.github.io",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
     return {"message": "LigandHub API is running", "status": "online"}
+
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+
+def sanitize_filename(name: str) -> str:
+    name = re.sub(r"[^\w.-]+", "_", name).strip("._")
+    return name or "ligand"
+
+
+def load_molecule_from_file(input_path: str, original_filename: str):
+    ext = os.path.splitext(original_filename)[1].lower()
+
+    if ext in {".smi", ".smiles", ".txt"}:
+        with open(input_path, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+        if not lines:
+            raise HTTPException(status_code=400, detail="Empty SMILES file")
+
+        smiles_str = lines[0].split()[0]
+        mol = Chem.MolFromSmiles(smiles_str)
+        if mol is None:
+            raise HTTPException(status_code=400, detail="Invalid SMILES string")
+        return mol
+
+    if ext == ".sdf":
+        supplier = Chem.SDMolSupplier(input_path, removeHs=False)
+        mol = next((m for m in supplier if m is not None), None)
+        if mol is None:
+            raise HTTPException(status_code=400, detail="Could not read molecule from SDF")
+        return mol
+
+    if ext == ".mol2":
+        mol = Chem.MolFromMol2File(input_path, removeHs=False)
+        if mol is None:
+            raise HTTPException(status_code=400, detail="Could not read molecule from MOL2")
+        return mol
+
+    if ext == ".pdb":
+        mol = Chem.MolFromPDBFile(input_path, removeHs=False)
+        if mol is None:
+            raise HTTPException(status_code=400, detail="Could not read molecule from PDB")
+        return mol
+
+    raise HTTPException(
+        status_code=400,
+        detail="Unsupported file format. Use SDF, MOL2, PDB, or a SMILES text file."
+    )
+
+
+def ensure_3d_and_hydrogens(mol):
+    # Añadir Hs explícitos; addCoords ayuda a preservar coords cuando existan
+    mol = Chem.AddHs(mol, addCoords=True)
+
+    needs_3d = (
+        mol.GetNumConformers() == 0 or
+        not mol.GetConformer().Is3D()
+    )
+
+    if needs_3d:
+        params = AllChem.ETKDGv3()
+        params.randomSeed = 42
+        embed_status = AllChem.EmbedMolecule(mol, params)
+
+        if embed_status != 0:
+            raise HTTPException(status_code=400, detail="RDKit could not generate 3D coordinates")
+
+        mmff_props = AllChem.MMFFGetMoleculeProperties(mol, mmffVariant="MMFF94")
+        if mmff_props is not None:
+            AllChem.MMFFOptimizeMolecule(mol)
+        else:
+            AllChem.UFFOptimizeMolecule(mol)
+
+    return mol
+
+
 @app.post("/prepare_ligand")
 async def prepare_ligand(
     file: UploadFile = File(...),
-    ph: float = Form(7.4),
+    filename: str = Form("ligand"),
+    ph: float = Form(7.4),  # Se acepta, pero por ahora no modifica protonación
     output_format: str = Form("pdbqt"),
-    filename: str = Form("ligand")
 ):
     """
-    Prepare ligand for AutoDock Vina using Meeko
-    """
-    # Validar formato de salida
-    if output_format not in ["pdbqt", "pdb", "both"]:
-        raise HTTPException(status_code=400, detail="Invalid output format")
+    Prepare ligand for AutoDock Vina using Meeko.
 
-    # Crear directorio temporal
-    with tempfile.TemporaryDirectory() as tmpdir:
-        try:
-            # Guardar archivo subido temporalmente
-            input_path = os.path.join(tmpdir, file.filename)
+    Nota:
+    - Meeko no asigna protonación automáticamente.
+    - El parámetro `ph` se recibe por compatibilidad de frontend, pero no se aplica.
+    """
+
+    if output_format != "pdbqt":
+        raise HTTPException(
+            status_code=400,
+            detail="Currently only 'pdbqt' output is implemented"
+        )
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No input filename provided")
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, sanitize_filename(file.filename))
+
             content = await file.read()
+            if not content:
+                raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
             with open(input_path, "wb") as f:
                 f.write(content)
 
-            # 1. Cargar la molécula con RDKit
-            is_smiles = file.filename.endswith(('.smi', '.smiles', '.txt'))
-            if is_smiles:
-                # Leer SMILES desde archivo
-                with open(input_path, 'r') as f:
-                    smiles_str = f.read().strip().split()[0]
-                mol = Chem.MolFromSmiles(smiles_str)
-                if mol is None:
-                    raise HTTPException(status_code=400, detail="Invalid SMILES string")
-            else:
-                # Cargar desde archivo (SDF, MOL2, PDB)
-                # Chem.SDMolSupplier es ideal para SDF, pero usaremos una carga genérica para otros formatos
-                if file.filename.endswith('.sdf'):
-                    supplier = Chem.SDMolSupplier(input_path, removeHs=False)
-                    mol = next(supplier) # Toma la primera molécula
-                elif file.filename.endswith(('.mol2', '.pdb')):
-                    mol = Chem.MolFromMol2File(input_path, removeHs=False) if file.filename.endswith('.mol2') else Chem.MolFromPDBFile(input_path, removeHs=False)
-                else:
-                    raise HTTPException(status_code=400, detail="Unsupported file format. Use SDF, MOL2, PDB, or SMILES.")
-                
-                if mol is None:
-                    raise HTTPException(status_code=400, detail="Could not read molecule from file")
+            mol = load_molecule_from_file(input_path, file.filename)
+            mol = ensure_3d_and_hydrogens(mol)
 
-            # 2. Añadir hidrógenos y generar coordenadas 3D si es necesario
-            mol = Chem.AddHs(mol)
-            # Si la molécula no tiene coordenadas 3D (ej. desde SMILES), generarlas
-            if not any(atom.HasProp('_3D') for atom in mol.GetAtoms()):
-                AllChem.EmbedMolecule(mol)
-                AllChem.MMFFOptimizeMolecule(mol) # Optimización rápida
-
-            # 3. Preparar la molécula con Meeko (API correcta)
-            preparator = MoleculePreparation() # Ya no usa el argumento 'ph'
-            mol_setups = preparator.prepare(mol) # Esto devuelve una lista
+            preparator = MoleculePreparation()
+            mol_setups = preparator.prepare(mol)
 
             if not mol_setups:
                 raise HTTPException(status_code=400, detail="Meeko could not prepare the ligand")
 
-            # 4. Generar el string PDBQT
             pdbqt_string, is_ok, error_msg = PDBQTWriterLegacy.write_string(mol_setups[0])
-            if not is_ok:
-                raise HTTPException(status_code=500, detail=f"Error generating PDBQT: {error_msg}")
 
-            # Preparar nombre de salida
-            base_name = os.path.splitext(file.filename)[0]
+            if not is_ok:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error generating PDBQT: {error_msg}"
+                )
+
+            base_name = sanitize_filename(os.path.splitext(filename or file.filename)[0])
             output_filename = f"{base_name}_prepared.pdbqt"
-            
-            # Guardar PDBQT temporal
-            output_path = os.path.join(tmpdir, output_filename)
-            with open(output_path, "w") as f:
-                f.write(pdbqt_string)
-            
-            # Devolver archivo
-            return FileResponse(
-                output_path,
-                media_type="text/plain",
-                filename=output_filename
+
+            return Response(
+                content=pdbqt_string,
+                media_type="text/plain; charset=utf-8",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{output_filename}"'
+                },
             )
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected server error: {str(e)}")
+
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
