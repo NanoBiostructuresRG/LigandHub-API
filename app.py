@@ -24,7 +24,7 @@ app = FastAPI(
 
 # Reemplaza esto por la URL real de tu frontend en GitHub Pages
 ALLOWED_ORIGINS = [
-    "https://TU-USUARIO.github.io",
+    "https://NanoBiostructuresRG.github.io/LigandHub",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
