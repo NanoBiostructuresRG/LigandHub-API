@@ -24,14 +24,19 @@ app = FastAPI(
 
 # Reemplaza esto por la URL real de tu frontend en GitHub Pages
 ALLOWED_ORIGINS = [
-    "https://NanoBiostructuresRG.github.io",
+    "https://nanobiostructuresrg.github.io",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[
+        "https://nanobiostructuresrg.github.io",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_origin_regex=r"https://nanobiostructuresrg\.github\.io",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
