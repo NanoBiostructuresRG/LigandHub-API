@@ -74,14 +74,14 @@ async def prepare_ligand(
                     raise HTTPException(status_code=400, detail="Invalid SMILES string")
                 
                 # Crear objeto de preparación
-                preparator = MoleculePreparation(ph=ph)
+                preparator = MoleculePreparation()
                 
                 # Preparar molécula
                 mol_prepared = preparator.prepare(mol)
                 
             else:
                 # Cargar molécula desde archivo (SDF, MOL2, PDB)
-                preparator = MoleculePreparation(ph=ph)
+                preparator = MoleculePreparation()
                 mol_prepared = preparator.prepare_from_file(input_path)
             
             if mol_prepared is None:
