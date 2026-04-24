@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import uvicorn
 
-from meeko import MoleculePreparation, PDBQTWriterLegacy
+from meeko import MoleculePreparation, PDBQTMolecule, PDBQTWriterLegacy, RDKitMolCreate
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
@@ -120,6 +120,52 @@ def load_molecule_from_file(input_path: str, original_filename: str):
     )
 
 
+def detect_docking_results_format(original_filename: str) -> str:
+    normalized_name = original_filename.lower()
+
+    if normalized_name.endswith(".pdbqt") or normalized_name.endswith(".pdbqt.gz"):
+        return "pdbqt"
+
+    if normalized_name.endswith(".dlg") or normalized_name.endswith(".dlg.gz"):
+        return "dlg"
+
+    raise HTTPException(
+        status_code=400,
+        detail="Unsupported docking results format. Use PDBQT or DLG files."
+    )
+
+
+def export_docking_results_to_sdf_string(input_path: str, docking_format: str) -> str:
+    pdbqt_mol = PDBQTMolecule.from_file(
+        input_path,
+        is_dlg=(docking_format == "dlg"),
+        skip_typing=True,
+    )
+    rdkit_mol_list = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+    valid_mols = [mol for mol in rdkit_mol_list if mol is not None]
+
+    if not valid_mols:
+        raise HTTPException(
+            status_code=400,
+            detail="Meeko could not reconstruct any molecule from the docking results"
+        )
+
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".sdf", delete=False, encoding="utf-8") as tmp_sdf:
+        output_path = tmp_sdf.name
+
+    try:
+        writer = Chem.SDWriter(output_path)
+        for mol in valid_mols:
+            writer.write(mol)
+        writer.close()
+
+        with open(output_path, "r", encoding="utf-8") as sdf_file:
+            return sdf_file.read()
+    finally:
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
+
 def ensure_3d_and_hydrogens(mol):
     # Add Hs explicit; addCoords helps preserve coordinates when they exist
     mol = Chem.AddHs(mol, addCoords=True)
@@ -222,6 +268,49 @@ async def prepare_ligand(
         raise
     except Exception as e:
         logger.exception("Unexpected server error while preparing ligand")
+        raise HTTPException(status_code=500, detail="Unexpected server error")
+
+
+@app.post("/convert_pdbqt_to_sdf")
+async def convert_pdbqt_to_sdf(
+    file: UploadFile = File(...),
+    filename: str = Form("docked_results"),
+):
+    """
+    Convert docking results from PDBQT or DLG back to SDF using Meeko's export logic.
+
+    Notes:
+    - PDBQT results are typically produced by AutoDock Vina.
+    - DLG results are typically produced by AutoDock-GPU.
+    - Meeko reconstructs bond orders using the REMARK metadata preserved in docking outputs.
+    """
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No input filename provided")
+
+    try:
+        docking_format = detect_docking_results_format(file.filename)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, sanitize_filename(file.filename))
+            await save_upload_file(file, input_path, MAX_UPLOAD_SIZE_BYTES)
+
+            sdf_string = export_docking_results_to_sdf_string(input_path, docking_format)
+            base_name = sanitize_filename(os.path.splitext(filename or file.filename)[0])
+            output_filename = f"{base_name}_docked.sdf"
+
+            return Response(
+                content=sdf_string,
+                media_type="chemical/x-mdl-sdfile; charset=utf-8",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{output_filename}"'
+                },
+            )
+
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unexpected server error while converting docking results")
         raise HTTPException(status_code=500, detail="Unexpected server error")
 
 
