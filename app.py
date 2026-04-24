@@ -63,6 +63,11 @@ app.add_middleware(
 )
 
 
+class BatchLimitExceeded(Exception):
+    def __init__(self, detail: dict):
+        self.detail = detail
+
+
 @app.get("/")
 async def root():
     return {"message": "LigandHub API is running", "status": "online"}
@@ -730,7 +735,7 @@ async def prepare_ligand_batch(
                                     detail=f"Error generating PDBQT: {error_msg}",
                                 )
 
-                            archive_name = f"{safe_ligand_id}_state{state_index}"
+                            archive_name = f"line{record['line_number']}_{safe_ligand_id}_state{state_index}"
                             if len(mol_setups) > 1:
                                 archive_name = f"{archive_name}_pose{setup_index}"
                             archive_name = f"{archive_name}.pdbqt"
@@ -739,8 +744,7 @@ async def prepare_ligand_batch(
                             total_pdbqt_bytes += len(pdbqt_string.encode("utf-8"))
 
                             if total_pdbqt_files > MAX_BATCH_PDBQT_FILES:
-                                raise HTTPException(
-                                    status_code=413,
+                                raise BatchLimitExceeded(
                                     detail={
                                         "message": (
                                             "Batch request generated too many output files for the current "
@@ -755,8 +759,7 @@ async def prepare_ligand_batch(
                                 )
 
                             if total_pdbqt_bytes > MAX_BATCH_TOTAL_PDBQT_BYTES:
-                                raise HTTPException(
-                                    status_code=413,
+                                raise BatchLimitExceeded(
                                     detail={
                                         "message": (
                                             "Batch request generated too much output data for the current "
@@ -787,13 +790,15 @@ async def prepare_ligand_batch(
                         "status": "failed",
                         "error": exc.detail,
                     })
+                except BatchLimitExceeded as exc:
+                    raise HTTPException(status_code=413, detail=exc.detail)
                 except Exception as exc:
                     logger.exception("Unexpected server error while preparing ligand batch item")
                     results.append({
                         "line": record["line_number"],
                         "id": ligand_id,
                         "status": "failed",
-                        "error": str(exc),
+                        "error": "Unexpected server error while preparing this ligand",
                     })
 
             successful = [result for result in results if result["status"] == "success"]
