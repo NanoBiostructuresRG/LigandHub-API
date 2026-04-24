@@ -2,16 +2,15 @@
 
 Backend API for ligand preparation and docking-result conversion in LigandHub.
 
-Updated for the current FastAPI backend prototype running on Render.
-
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
 ## What This API Does
 
-LigandHub-API currently exposes four HTTP endpoints:
+LigandHub-API currently exposes five primary HTTP endpoints:
 
 - `GET /health`: basic service health check
 - `GET /limits`: returns the current prototype limits configured for Render deployment
+- `POST /validate`: validates one SMILES string without running ligand preparation
 - `POST /prepare_ligand`: prepares a single ligand and returns a `.pdbqt`
 - `POST /prepare_ligand_batch`: prepares a SMILES library and returns a ZIP with multiple `.pdbqt`
 - `POST /convert_pdbqt_to_sdf`: converts docking result files (`.pdbqt` or `.dlg`) back to `.sdf`
@@ -35,6 +34,8 @@ Pipeline:
 Input molecule
    ->
 RDKit parsing
+   ->
+structural validation
    ->
 3D coordinates + explicit hydrogens
    ->
@@ -63,6 +64,8 @@ Batch pipeline:
 .smi library
    ->
 line-by-line SMILES parsing
+   ->
+structural validation
    ->
 Scrub / molscrub
    ->
@@ -93,6 +96,20 @@ RDKit molecules
    ->
 SDF output
 ```
+
+## Structural Validation
+
+LigandHub validates molecular structure before ligand preparation starts. This keeps common input problems out of the Meeko step and gives clients errors that can be shown directly to users.
+
+Validation covers:
+
+- SMILES syntax problems, including unclosed rings, brackets, and parentheses
+- atom valence errors reported with atom index, element, observed valence, and typical maximum valence when available
+- metal atoms that may need explicit charge review
+- unusual elements outside the common ligand-preparation set
+- high formal net charge
+
+Fatal validation errors stop ligand preparation with a `400` response. Non-fatal findings are returned as warnings so the frontend can let the user decide whether the molecule still makes chemical sense for their workflow.
 
 ## API Endpoints
 
@@ -133,6 +150,7 @@ Example response:
 ### `POST /prepare_ligand`
 
 Prepares one ligand and returns a `.pdbqt` file.
+The input is validated before 3D coordinate generation and Meeko preparation. Validation warnings are returned in the `X-LigandHub-Warnings` response header as a JSON array of messages.
 
 Form fields:
 
@@ -153,12 +171,47 @@ curl -X POST http://localhost:8000/prepare_ligand \
   --output my_ligand_prepared.pdbqt
 ```
 
+### `POST /validate`
+
+Validates one SMILES string without running ligand preparation.
+
+Form fields:
+
+- `smiles`: required SMILES string
+
+Example:
+
+```bash
+curl -X POST http://localhost:8000/validate \
+  -F "smiles=C(C)(C)(C)(C)C"
+```
+
+Example response:
+
+```json
+{
+  "valid": false,
+  "errors": [
+    {
+      "type": "valence_error",
+      "atom": 1,
+      "element": "C",
+      "valence": 5,
+      "max_valence": 4,
+      "message": "C atom #1 has valence 5 (typical max 4)"
+    }
+  ],
+  "warnings": [],
+  "smiles": "C(C)(C)(C)(C)C"
+}
+```
+
 ### `POST /prepare_ligand_batch`
 
 Prepares a SMILES library and returns a ZIP archive containing:
 
 - one `.pdbqt` file per generated ligand state
-- `summary.json` with success/failure details
+- `summary.json` with success/failure details, including validation errors and warnings per ligand
 
 Form fields:
 
@@ -209,6 +262,7 @@ Frontend integration note:
 - for batch-limit errors, read `detail.message` and show it directly to the user
 - show `detail.suggestion` as the recommended next action
 - optionally render `detail.limits` in a help panel so users know when to split a library into smaller batches
+- for validation errors, show `detail.message`; use `detail.errors` and `detail.warnings` when a more structured UI is useful
 
 ### `POST /convert_pdbqt_to_sdf`
 
@@ -300,6 +354,7 @@ Included:
 
 - single-ligand preparation to PDBQT
 - batch ligand preparation to ZIP of PDBQT files
+- structural validation for ligand inputs before Meeko preparation
 - docking-output conversion from PDBQT or DLG to SDF
 - explicit runtime limits endpoint for frontend visibility
 
