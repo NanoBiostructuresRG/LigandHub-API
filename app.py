@@ -24,6 +24,7 @@ app = FastAPI(
 
 logger = logging.getLogger(__name__)
 MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
+SUPPORTED_CHARGE_MODELS = {"gasteiger", "nagl", "espaloma", "zero"}
 
 # Replace this with the real URL of your frontend on GitHub Pages
 ALLOWED_ORIGINS = [
@@ -196,18 +197,17 @@ def ensure_3d_and_hydrogens(mol):
 async def prepare_ligand(
     file: UploadFile = File(...),
     filename: str = Form("ligand"),
-    ph: float = Form(7.4),  # Accepted for compatibility, but it does not modify protonation yet
     output_format: str = Form("pdbqt"),
     merge_h: bool = Form(True),
+    charge_model: str = Form("gasteiger"),
 ):
     """
     Prepare ligand for AutoDock Vina using Meeko.
 
     Notes:
-    - Meeko does not assign protonation automatically.
-    - The `ph` parameter is accepted for frontend compatibility, but it is not applied.
     - `merge_h=True` merges hydrogens using the default behavior.
     - `merge_h=False` keeps hydrogens separate.
+    - `charge_model` supports: gasteiger, nagl, espaloma, zero.
     """
 
     if output_format != "pdbqt":
@@ -216,10 +216,11 @@ async def prepare_ligand(
             detail="Currently only 'pdbqt' output is implemented"
         )
 
-    if ph != 7.4:
+    charge_model = charge_model.strip().lower()
+    if charge_model not in SUPPORTED_CHARGE_MODELS:
         raise HTTPException(
             status_code=400,
-            detail="The 'ph' parameter is not implemented yet and must remain at 7.4"
+            detail="Invalid 'charge_model'. Use one of: gasteiger, nagl, espaloma, zero"
         )
 
     if not file.filename:
@@ -233,12 +234,11 @@ async def prepare_ligand(
             mol = load_molecule_from_file(input_path, file.filename)
             mol = ensure_3d_and_hydrogens(mol)
 
-            if merge_h:
-                # Default: merge hydrogens (AutoDock standard)
-                preparator = MoleculePreparation()
-            else:
-                # Keep all hydrogens separate
-                preparator = MoleculePreparation(merge_these_atom_types=())
+            merge_these = ("H",) if merge_h else ()
+            preparator = MoleculePreparation(
+                merge_these_atom_types=merge_these,
+                charge_model=charge_model,
+            )
 
             mol_setups = preparator.prepare(mol)
 
