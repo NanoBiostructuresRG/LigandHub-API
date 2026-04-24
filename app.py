@@ -6,7 +6,7 @@ Endpoint: /prepare_ligand
 import os
 import re
 import tempfile
-from typing import Optional
+import logging
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +22,9 @@ app = FastAPI(
     description="Ligand preparation for AutoDock Vina using Meeko"
 )
 
+logger = logging.getLogger(__name__)
+MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
+
 # Reemplaza esto por la URL real de tu frontend en GitHub Pages
 ALLOWED_ORIGINS = [
     "https://nanobiostructuresrg.github.io",
@@ -31,11 +34,7 @@ ALLOWED_ORIGINS = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://nanobiostructuresrg.github.io",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_origin_regex=r"https://nanobiostructuresrg\.github\.io",
     allow_credentials=True,
     allow_methods=["*"],
@@ -56,6 +55,29 @@ async def health():
 def sanitize_filename(name: str) -> str:
     name = re.sub(r"[^\w.-]+", "_", name).strip("._")
     return name or "ligand"
+
+
+async def save_upload_file(upload_file: UploadFile, destination_path: str, max_size_bytes: int) -> None:
+    total_size = 0
+    chunk_size = 1024 * 1024
+
+    with open(destination_path, "wb") as destination:
+        while True:
+            chunk = await upload_file.read(chunk_size)
+            if not chunk:
+                break
+
+            total_size += len(chunk)
+            if total_size > max_size_bytes:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Uploaded file exceeds the {max_size_bytes} byte limit"
+                )
+
+            destination.write(chunk)
+
+    if total_size == 0:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
 
 def load_molecule_from_file(input_path: str, original_filename: str):
@@ -99,7 +121,7 @@ def load_molecule_from_file(input_path: str, original_filename: str):
 
 
 def ensure_3d_and_hydrogens(mol):
-    # Añadir Hs explícitos; addCoords ayuda a preservar coords cuando existan
+    # Add Hs explicit; addCoords helps preserve coordinates when they exist
     mol = Chem.AddHs(mol, addCoords=True)
 
     needs_3d = (
@@ -145,19 +167,19 @@ async def prepare_ligand(
             detail="Currently only 'pdbqt' output is implemented"
         )
 
+    if ph != 7.4:
+        raise HTTPException(
+            status_code=400,
+            detail="The 'ph' parameter is not implemented yet and must remain at 7.4"
+        )
+
     if not file.filename:
         raise HTTPException(status_code=400, detail="No input filename provided")
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = os.path.join(tmpdir, sanitize_filename(file.filename))
-
-            content = await file.read()
-            if not content:
-                raise HTTPException(status_code=400, detail="Uploaded file is empty")
-
-            with open(input_path, "wb") as f:
-                f.write(content)
+            await save_upload_file(file, input_path, MAX_UPLOAD_SIZE_BYTES)
 
             mol = load_molecule_from_file(input_path, file.filename)
             mol = ensure_3d_and_hydrogens(mol)
@@ -190,7 +212,8 @@ async def prepare_ligand(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected server error: {str(e)}")
+        logger.exception("Unexpected server error while preparing ligand")
+        raise HTTPException(status_code=500, detail="Unexpected server error")
 
 
 if __name__ == "__main__":
