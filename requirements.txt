@@ -3,5 +3,6 @@ uvicorn==0.24.0
 python-multipart==0.0.6
 meeko==0.7.1
 rdkit==2025.9.2
-scipy
-gemmi
+scipy==1.17.1
+gemmi==0.7.5
+molscrub==0.2.2
