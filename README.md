@@ -39,6 +39,8 @@ structural validation
    ->
 3D coordinates + explicit hydrogens
    ->
+optional energy minimization
+   ->
 Meeko preparation
    ->
 PDBQT output
@@ -70,6 +72,8 @@ structural validation
 Scrub / molscrub
    ->
 enumerated ligand states
+   ->
+optional energy minimization
    ->
 Meeko preparation
    ->
@@ -159,6 +163,7 @@ Form fields:
 - `output_format`: currently only `pdbqt`
 - `merge_h`: `true` or `false`
 - `charge_model`: `gasteiger`, `nagl`, `espaloma`, or `zero`
+- `energy_minimization`: optional `true` or `false`; when omitted, minimization is enabled for SMILES/2D inputs and disabled for 3D input files
 
 Example:
 
@@ -168,6 +173,7 @@ curl -X POST http://localhost:8000/prepare_ligand \
   -F "filename=my_ligand" \
   -F "merge_h=true" \
   -F "charge_model=gasteiger" \
+  -F "energy_minimization=true" \
   --output my_ligand_prepared.pdbqt
 ```
 
@@ -219,6 +225,7 @@ Form fields:
 - `filename`: optional output basename, default `ligands`
 - `merge_h`: `true` or `false`
 - `charge_model`: `gasteiger`, `nagl`, `espaloma`, or `zero`
+- `energy_minimization`: optional `true` or `false`; when omitted, minimization is enabled for generated 3D geometries
 
 Example input:
 
@@ -236,6 +243,7 @@ curl -X POST http://localhost:8000/prepare_ligand_batch \
   -F "filename=demo_library" \
   -F "merge_h=true" \
   -F "charge_model=gasteiger" \
+  -F "energy_minimization=true" \
   --output demo_library_pdbqt_batch.zip
 ```
 
