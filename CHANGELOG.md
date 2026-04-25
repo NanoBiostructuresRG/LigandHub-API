@@ -19,6 +19,7 @@ All notable changes to LigandHub-API will be documented in this file.
 - Extracted chemical and SMILES validation logic into `validation.py`.
 - Extracted docking result format detection and PDBQT/DLG-to-SDF conversion logic into `docking_io.py`.
 - Added local temporary test folder pattern `tmp_test/` to `.gitignore`.
+- Extracted upload file handling logic into `file_io.py`.
 
 
 ### Notes
