@@ -11,6 +11,12 @@ All notable changes to LigandHub-API will be documented in this file.
 - Keep the current public API contract unchanged during the refactor.
 - Maintain the existing workflows for ligand preparation, structural validation, batch processing, and docking-output conversion.
 
+### Changed
+
+- Extracted backend configuration constants into `config.py`.
+- Extracted small utility helpers into `utils.py`.
+- Preserved the public API contract from v0.1.0 during the first refactor step.
+
 ### Notes
 
 This development version focuses on internal backend restructuring. It does not intentionally introduce changes to frontend behavior or public endpoint usage.
