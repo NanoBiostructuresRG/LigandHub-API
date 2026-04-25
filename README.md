@@ -164,6 +164,9 @@ Form fields:
 - `merge_h`: `true` or `false`
 - `charge_model`: `gasteiger`, `nagl`, `espaloma`, or `zero`
 - `energy_minimization`: optional `true` or `false`; when omitted, minimization is enabled for SMILES/2D inputs and disabled for 3D input files
+- `minimization_max_iters`: optional integer from `1` to `2000`, default `1000`
+
+Energy minimization uses MMFF94 when parameters are available and falls back to UFF when MMFF94 cannot be assigned. If neither force field can be applied, ligand preparation continues with the current geometry.
 
 Example:
 
@@ -174,6 +177,7 @@ curl -X POST http://localhost:8000/prepare_ligand \
   -F "merge_h=true" \
   -F "charge_model=gasteiger" \
   -F "energy_minimization=true" \
+  -F "minimization_max_iters=1000" \
   --output my_ligand_prepared.pdbqt
 ```
 
@@ -226,6 +230,9 @@ Form fields:
 - `merge_h`: `true` or `false`
 - `charge_model`: `gasteiger`, `nagl`, `espaloma`, or `zero`
 - `energy_minimization`: optional `true` or `false`; when omitted, minimization is enabled for generated 3D geometries
+- `minimization_max_iters`: optional integer from `1` to `2000`, default `1000`
+
+Energy minimization uses MMFF94 when parameters are available and falls back to UFF when MMFF94 cannot be assigned. If neither force field can be applied, batch processing continues with the current geometry for that ligand state.
 
 Example input:
 
@@ -244,6 +251,7 @@ curl -X POST http://localhost:8000/prepare_ligand_batch \
   -F "merge_h=true" \
   -F "charge_model=gasteiger" \
   -F "energy_minimization=true" \
+  -F "minimization_max_iters=1000" \
   --output demo_library_pdbqt_batch.zip
 ```
 
