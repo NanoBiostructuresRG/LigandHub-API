@@ -38,6 +38,8 @@ MAX_BATCH_MOLECULES = 100
 MAX_SCRUBBED_STATES_PER_LIGAND = 8
 MAX_BATCH_PDBQT_FILES = 250
 MAX_BATCH_TOTAL_PDBQT_BYTES = 25 * 1024 * 1024
+DEFAULT_MINIMIZATION_MAX_ITERS = 1000
+MAX_MINIMIZATION_MAX_ITERS = 2000
 SUPPORTED_CHARGE_MODELS = {"gasteiger", "nagl", "espaloma", "zero"}
 COMMON_ELEMENTS = {
     "H", "B", "C", "N", "O", "F", "P", "S", "Cl", "Br", "I",
@@ -315,6 +317,19 @@ def get_batch_limit_summary() -> dict:
     }
 
 
+def validate_minimization_max_iters(max_iters: int) -> int:
+    if max_iters < 1 or max_iters > MAX_MINIMIZATION_MAX_ITERS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "'minimization_max_iters' must be between 1 and "
+                f"{MAX_MINIMIZATION_MAX_ITERS}"
+            ),
+        )
+
+    return max_iters
+
+
 async def save_upload_file(upload_file: UploadFile, destination_path: str, max_size_bytes: int) -> None:
     total_size = 0
     chunk_size = 1024 * 1024
@@ -438,7 +453,11 @@ def export_docking_results_to_sdf_string(input_path: str, docking_format: str) -
             os.remove(output_path)
 
 
-def ensure_3d_and_hydrogens(mol, energy_minimization: bool | None = None):
+def ensure_3d_and_hydrogens(
+    mol,
+    energy_minimization: bool | None = None,
+    minimization_max_iters: int = DEFAULT_MINIMIZATION_MAX_ITERS,
+):
     input_has_3d = (
         mol.GetNumConformers() > 0 and
         mol.GetConformer().Is3D()
@@ -466,9 +485,11 @@ def ensure_3d_and_hydrogens(mol, energy_minimization: bool | None = None):
         try:
             mmff_props = AllChem.MMFFGetMoleculeProperties(mol, mmffVariant="MMFF94")
             if mmff_props is not None:
-                AllChem.MMFFOptimizeMolecule(mol, mmffVariant="MMFF94", maxIters=1000)
+                AllChem.MMFFOptimizeMolecule(mol, mmffVariant="MMFF94", maxIters=minimization_max_iters)
+            elif AllChem.UFFHasAllMoleculeParams(mol):
+                AllChem.UFFOptimizeMolecule(mol, maxIters=minimization_max_iters)
             else:
-                logger.info("MMFF94 parameters could not be assigned; skipping ligand minimization")
+                logger.info("No MMFF94 or UFF parameters available; skipping ligand minimization")
         except Exception:
             logger.exception("Ligand minimization failed; continuing with current geometry")
 
@@ -518,7 +539,11 @@ def parse_smiles_records(input_path: str):
     return records
 
 
-def scrub_molecule_states(mol, energy_minimization: bool | None = None):
+def scrub_molecule_states(
+    mol,
+    energy_minimization: bool | None = None,
+    minimization_max_iters: int = DEFAULT_MINIMIZATION_MAX_ITERS,
+):
     if Scrub is None:
         raise HTTPException(
             status_code=500,
@@ -546,7 +571,11 @@ def scrub_molecule_states(mol, energy_minimization: bool | None = None):
 
     prepared_states = []
     for state in scrubbed_states:
-        state_with_geometry = ensure_3d_and_hydrogens(state, energy_minimization=energy_minimization)
+        state_with_geometry = ensure_3d_and_hydrogens(
+            state,
+            energy_minimization=energy_minimization,
+            minimization_max_iters=minimization_max_iters,
+        )
         prepared_states.append(state_with_geometry)
 
     return prepared_states
@@ -581,6 +610,7 @@ async def prepare_ligand(
     merge_h: bool = Form(True),
     charge_model: str = Form("gasteiger"),
     energy_minimization: bool | None = Form(None),
+    minimization_max_iters: int = Form(DEFAULT_MINIMIZATION_MAX_ITERS),
 ):
     """
     Prepare ligand for AutoDock Vina using Meeko.
@@ -590,6 +620,7 @@ async def prepare_ligand(
     - `merge_h=False` keeps hydrogens separate.
     - `charge_model` supports: gasteiger, nagl, espaloma, zero.
     - `energy_minimization` defaults to true for SMILES/2D inputs and false for 3D files.
+    - `minimization_max_iters` controls MMFF94/UFF minimization iterations, maximum 2000.
     """
 
     if output_format != "pdbqt":
@@ -608,13 +639,19 @@ async def prepare_ligand(
     if not file.filename:
         raise HTTPException(status_code=400, detail="No input filename provided")
 
+    minimization_max_iters = validate_minimization_max_iters(minimization_max_iters)
+
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = os.path.join(tmpdir, sanitize_filename(file.filename))
             await save_upload_file(file, input_path, MAX_UPLOAD_SIZE_BYTES)
 
             mol, validation_warnings = load_molecule_from_file(input_path, file.filename)
-            mol = ensure_3d_and_hydrogens(mol, energy_minimization=energy_minimization)
+            mol = ensure_3d_and_hydrogens(
+                mol,
+                energy_minimization=energy_minimization,
+                minimization_max_iters=minimization_max_iters,
+            )
 
             merge_these = ("H",) if merge_h else ()
             preparator = MoleculePreparation(
@@ -663,6 +700,7 @@ async def prepare_ligand_batch(
     merge_h: bool = Form(True),
     charge_model: str = Form("gasteiger"),
     energy_minimization: bool | None = Form(None),
+    minimization_max_iters: int = Form(DEFAULT_MINIMIZATION_MAX_ITERS),
 ):
     """
     Prepare multiple ligands from a SMILES library file and return a ZIP with all PDBQT files.
@@ -676,6 +714,7 @@ async def prepare_ligand_batch(
       max 8 scrubbed states per ligand, max 250 generated PDBQT files, and max 25 MB
       of generated PDBQT content before ZIP packaging.
     - `energy_minimization` defaults to true for generated 3D geometries.
+    - `minimization_max_iters` controls MMFF94/UFF minimization iterations, maximum 2000.
     """
 
     if not file.filename:
@@ -694,6 +733,8 @@ async def prepare_ligand_batch(
             status_code=400,
             detail="Invalid 'charge_model'. Use one of: gasteiger, nagl, espaloma, zero"
         )
+
+    minimization_max_iters = validate_minimization_max_iters(minimization_max_iters)
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -728,6 +769,7 @@ async def prepare_ligand_batch(
                     scrubbed_states = scrub_molecule_states(
                         mol,
                         energy_minimization=energy_minimization,
+                        minimization_max_iters=minimization_max_iters,
                     )
                     generated_files = []
 
