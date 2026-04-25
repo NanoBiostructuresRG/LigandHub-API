@@ -21,6 +21,26 @@ from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import AtomValenceException
 
+from config import (
+    ALLOWED_ORIGINS,
+    COMMON_ELEMENTS,
+    DEFAULT_MINIMIZATION_MAX_ITERS,
+    MAX_BATCH_MOLECULES,
+    MAX_BATCH_PDBQT_FILES,
+    MAX_BATCH_TOTAL_PDBQT_BYTES,
+    MAX_BATCH_UPLOAD_SIZE_BYTES,
+    MAX_SCRUBBED_STATES_PER_LIGAND,
+    MAX_UPLOAD_SIZE_BYTES,
+    METALS,
+    SUPPORTED_CHARGE_MODELS,
+)
+from utils import (
+    get_batch_limit_summary,
+    sanitize_filename,
+    sanitize_ligand_id,
+    validate_minimization_max_iters,
+)
+
 try:
     from molscrub import Scrub
 except ImportError:
@@ -32,27 +52,6 @@ app = FastAPI(
 )
 
 logger = logging.getLogger(__name__)
-MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
-MAX_BATCH_UPLOAD_SIZE_BYTES = 1 * 1024 * 1024
-MAX_BATCH_MOLECULES = 100
-MAX_SCRUBBED_STATES_PER_LIGAND = 8
-MAX_BATCH_PDBQT_FILES = 250
-MAX_BATCH_TOTAL_PDBQT_BYTES = 25 * 1024 * 1024
-DEFAULT_MINIMIZATION_MAX_ITERS = 1000
-MAX_MINIMIZATION_MAX_ITERS = 2000
-SUPPORTED_CHARGE_MODELS = {"gasteiger", "nagl", "espaloma", "zero"}
-COMMON_ELEMENTS = {
-    "H", "B", "C", "N", "O", "F", "P", "S", "Cl", "Br", "I",
-    "Li", "Na", "K", "Mg", "Ca", "Fe", "Zn", "Cu", "Mn", "Co", "Ni", "Al",
-}
-METALS = {"Fe", "Zn", "Cu", "Mn", "Co", "Ni", "Mg", "Ca", "Na", "K", "Li", "Al"}
-
-# Replace this with the real URL of your frontend on GitHub Pages
-ALLOWED_ORIGINS = [
-    "https://nanobiostructuresrg.github.io",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
 
 app.add_middleware(
     CORSMiddleware,
@@ -108,18 +107,6 @@ async def validate_smiles_endpoint(smiles: str = Form(...)):
         "warnings": warnings,
         "smiles": smiles,
     }
-
-
-def sanitize_filename(name: str) -> str:
-    name = re.sub(r"[^\w.-]+", "_", name).strip("._")
-    return name or "ligand"
-
-
-def sanitize_ligand_id(name: str, fallback_prefix: str, index: int) -> str:
-    sanitized = sanitize_filename(name)
-    if sanitized == "ligand" and not name.strip():
-        sanitized = f"{fallback_prefix}_{index}"
-    return sanitized
 
 
 def format_atom_label(atom) -> str:
@@ -305,29 +292,6 @@ def validate_loaded_molecule(mol):
         )
 
     return warnings
-
-
-def get_batch_limit_summary() -> dict:
-    return {
-        "batch_upload_max_bytes": MAX_BATCH_UPLOAD_SIZE_BYTES,
-        "batch_max_molecules": MAX_BATCH_MOLECULES,
-        "batch_max_scrubbed_states_per_ligand": MAX_SCRUBBED_STATES_PER_LIGAND,
-        "batch_max_generated_pdbqt_files": MAX_BATCH_PDBQT_FILES,
-        "batch_max_total_pdbqt_bytes": MAX_BATCH_TOTAL_PDBQT_BYTES,
-    }
-
-
-def validate_minimization_max_iters(max_iters: int) -> int:
-    if max_iters < 1 or max_iters > MAX_MINIMIZATION_MAX_ITERS:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "'minimization_max_iters' must be between 1 and "
-                f"{MAX_MINIMIZATION_MAX_ITERS}"
-            ),
-        )
-
-    return max_iters
 
 
 async def save_upload_file(upload_file: UploadFile, destination_path: str, max_size_bytes: int) -> None:
