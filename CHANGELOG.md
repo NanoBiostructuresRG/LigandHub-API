@@ -16,6 +16,7 @@ All notable changes to LigandHub-API will be documented in this file.
 - Extracted backend configuration constants into `config.py`.
 - Extracted small utility helpers into `utils.py`.
 - Preserved the public API contract from v0.1.0 during the first refactor step.
+- Extracted chemical and SMILES validation logic into `validation.py`.
 
 ### Notes
 
