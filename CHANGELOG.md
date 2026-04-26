@@ -27,6 +27,9 @@ All notable changes to LigandHub-API will be documented in this file.
 
 This development version focuses on internal backend restructuring. It does not intentionally introduce changes to frontend behavior or public endpoint usage.
 
+- Minimal local regression test completed after modular extraction: `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/convert_pdbqt_to_sdf` passed.
+
+
 ## [v0.1.0] - 2026-04-25
 
 ### Added
