@@ -28,6 +28,7 @@ All notable changes to LigandHub-API will be documented in this file.
 - Extracted batch SMILES parsing logic into `batch_processing.py`.
 - Extracted batch summary construction into `batch_processing.py`.
 - Extracted batch archive filename construction into `batch_processing.py`.
+- Extracted batch ZIP response generation into `batch_processing.py`.
 
 
 ### Notes
@@ -42,7 +43,7 @@ This development version focuses on internal backend restructuring. It does not 
 - Local functional checks passed for batch ligand preparation after extracting SMILES parsing helper.
 - Local functional checks passed for batch ligand preparation after extracting the batch summary helper.
 - Local functional checks passed for batch ligand preparation after extracting archive naming helper.
-
+- Local functional checks passed for batch ligand preparation after extracting ZIP response helper.
 
 
 ## [v0.1.0] - 2026-04-25
