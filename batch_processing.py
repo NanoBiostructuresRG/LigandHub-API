@@ -57,3 +57,11 @@ def build_batch_summary(records, results):
         "failed": len(failed),
         "details": results,
     }
+
+
+def build_batch_archive_name(record, safe_ligand_id: str, state_index: int, setup_index: int, setup_count: int) -> str:
+    archive_name = f"line{record['line_number']}_{safe_ligand_id}_state{state_index}"
+    if setup_count > 1:
+        archive_name = f"{archive_name}_pose{setup_index}"
+    archive_name = f"{archive_name}.pdbqt"
+    return archive_name

@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import uvicorn
 
-from batch_processing import build_batch_summary, parse_smiles_records
+from batch_processing import build_batch_archive_name, build_batch_summary, parse_smiles_records
 from config import (
     ALLOWED_ORIGINS,
     DEFAULT_MINIMIZATION_MAX_ITERS,
@@ -293,10 +293,13 @@ async def prepare_ligand_batch(
                         for setup_index, mol_setup in enumerate(mol_setups, start=1):
                             pdbqt_string = write_pdbqt_string(mol_setup)
 
-                            archive_name = f"line{record['line_number']}_{safe_ligand_id}_state{state_index}"
-                            if len(mol_setups) > 1:
-                                archive_name = f"{archive_name}_pose{setup_index}"
-                            archive_name = f"{archive_name}.pdbqt"
+                            archive_name = build_batch_archive_name(
+                                record,
+                                safe_ligand_id,
+                                state_index,
+                                setup_index,
+                                len(mol_setups),
+                            )
 
                             total_pdbqt_files += 1
                             total_pdbqt_bytes += len(pdbqt_string.encode("utf-8"))
