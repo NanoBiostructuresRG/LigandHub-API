@@ -29,6 +29,9 @@ All notable changes to LigandHub-API will be documented in this file.
 - Extracted batch summary construction into `batch_processing.py`.
 - Extracted batch archive filename construction into `batch_processing.py`.
 - Extracted batch ZIP response generation into `batch_processing.py`.
+- Updated `Dockerfile` to copy the full backend codebase using `COPY . .`, ensuring all refactored modules are included in the container build.
+- Cleaned malformed comments (mojibake) in `Dockerfile` without altering functional instructions.
+- Added `.dockerignore` to exclude caches, virtual environments, development artifacts, and large non-essential files from the Docker build context.
 
 
 ### Notes
@@ -44,6 +47,9 @@ This development version focuses on internal backend restructuring. It does not 
 - Local functional checks passed for batch ligand preparation after extracting the batch summary helper.
 - Local functional checks passed for batch ligand preparation after extracting archive naming helper.
 - Local functional checks passed for batch ligand preparation after extracting ZIP response helper.
+- Docker build could not be validated locally due to Docker not being available in the execution environment.
+- The current repository structure and Docker configuration are ready for deployment testing on Render.
+
 
 
 ## [v0.1.0] - 2026-04-25
