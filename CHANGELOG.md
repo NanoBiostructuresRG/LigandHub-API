@@ -64,6 +64,7 @@ This development version focuses on internal backend restructuring. It does not 
 - Remaining risks: `file_io.py` still needs async tests with mocks or stubs for `UploadFile`.
 - Remaining risks: Docker-based pytest execution is still manual and depends on mounting the current workspace because the existing image was built before `requirements-dev.txt` and `tests/` were added.
 - Remaining risks: endpoint smoke tests still need to be automated for `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/convert_pdbqt_to_sdf`.
+- The Docker image was rebuilt after adding the test suite, and pytest was successfully executed inside the updated container image.
 
 
 
