@@ -37,3 +37,7 @@ temp/
 *.dlg
 
 README.assets/
+
+pytest-cache-files-*/
+.pytest_cache/
+tmp_test/
