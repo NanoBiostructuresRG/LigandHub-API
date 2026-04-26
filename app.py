@@ -15,10 +15,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import uvicorn
 
+from batch_processing import parse_smiles_records
 from config import (
     ALLOWED_ORIGINS,
     DEFAULT_MINIMIZATION_MAX_ITERS,
-    MAX_BATCH_MOLECULES,
     MAX_BATCH_PDBQT_FILES,
     MAX_BATCH_TOTAL_PDBQT_BYTES,
     MAX_BATCH_UPLOAD_SIZE_BYTES,
@@ -99,49 +99,6 @@ async def validate_smiles_endpoint(smiles: str = Form(...)):
         "warnings": warnings,
         "smiles": smiles,
     }
-
-
-def parse_smiles_records(input_path: str):
-    records = []
-
-    with open(input_path, "r", encoding="utf-8") as handle:
-        for line_number, raw_line in enumerate(handle, start=1):
-            line = raw_line.strip()
-            if not line or line.startswith("#"):
-                continue
-
-            parts = line.split()
-            if len(parts) < 2:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "Batch processing requires a .smi file with at least two columns per line: "
-                        "SMILES and ligand ID"
-                    ),
-                )
-
-            records.append(
-                {
-                    "line_number": line_number,
-                    "smiles": parts[0],
-                    "ligand_id": parts[1],
-                }
-            )
-
-    if not records:
-        raise HTTPException(status_code=400, detail="No valid molecules found in .smi file")
-
-    if len(records) > MAX_BATCH_MOLECULES:
-        raise HTTPException(
-            status_code=413,
-            detail={
-                "message": f"Batch request exceeds the prototype limit of {MAX_BATCH_MOLECULES} molecules.",
-                "suggestion": "Split the library into smaller files for this Render deployment.",
-                "limits": get_batch_limit_summary(),
-            },
-        )
-
-    return records
 
 
 def create_zip_response(zip_basename: str, files_to_write: dict[str, str], summary_payload: dict) -> Response:
