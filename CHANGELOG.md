@@ -58,7 +58,8 @@ This development version focuses on internal backend restructuring. It does not 
 - Test suite executed successfully with all tests passing.
 - Modules tightly coupled to FastAPI (e.g., `file_io.py`) were intentionally excluded from this first testing layer.
 - The initial testing gap has been partially mitigated with a pytest-based unit test suite.
-- Remaining testing gaps are focused on integration tests, endpoint smoke tests, Docker-based test execution, and RDKit/Meeko-heavy workflows.
+- Docker-based endpoint smoke test completed successfully for `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/prepare_ligand_batch`; individual and batch PDBQT generation were verified.
+- Remaining testing gaps are focused on automated integration tests, broader endpoint coverage, repeatable Docker-based test execution, and RDKit/Meeko-heavy workflows.
 
 
 
