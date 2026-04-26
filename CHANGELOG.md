@@ -57,6 +57,9 @@ This development version focuses on internal backend restructuring. It does not 
 - Initial automated tests cover pure and low-risk modules: `validation.py`, `utils.py`, and `batch_processing.py`.
 - Test suite executed successfully with all tests passing.
 - Modules tightly coupled to FastAPI (e.g., `file_io.py`) were intentionally excluded from this first testing layer.
+- The initial testing gap has been partially mitigated with a pytest-based unit test suite.
+- Remaining testing gaps are focused on integration tests, endpoint smoke tests, Docker-based test execution, and RDKit/Meeko-heavy workflows.
+
 
 
 
