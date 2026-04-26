@@ -22,6 +22,7 @@ All notable changes to LigandHub-API will be documented in this file.
 - Extracted upload file handling logic into `file_io.py`.
 - Extracted molecule loading logic into `molecule_io.py`.
 - Extracted the RDKit geometry, hydrogen addition, and minimization helper into `preparation.py`.
+- Moved scrubbed molecule state generation into `preparation.py`, keeping batch endpoint behavior unchanged.
 
 
 ### Notes
@@ -30,6 +31,8 @@ This development version focuses on internal backend restructuring. It does not 
 
 - Minimal local regression test completed after modular extraction: `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/convert_pdbqt_to_sdf` passed.
 - Local functional checks passed for individual ligand preparation and batch ligand preparation after extracting the preparation helper.
+- Local functional checks passed for batch ligand preparation and individual ligand preparation after extracting `scrub_molecule_states`.
+
 
 
 ## [v0.1.0] - 2026-04-25
