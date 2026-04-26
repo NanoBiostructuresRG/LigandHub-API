@@ -24,7 +24,6 @@ from config import (
     MAX_BATCH_PDBQT_FILES,
     MAX_BATCH_TOTAL_PDBQT_BYTES,
     MAX_BATCH_UPLOAD_SIZE_BYTES,
-    MAX_SCRUBBED_STATES_PER_LIGAND,
     MAX_UPLOAD_SIZE_BYTES,
     SUPPORTED_CHARGE_MODELS,
 )
@@ -37,13 +36,8 @@ from utils import (
 from docking_io import detect_docking_results_format, export_docking_results_to_sdf_string
 from file_io import save_upload_file
 from molecule_io import load_molecule_from_file
-from preparation import ensure_3d_and_hydrogens
+from preparation import ensure_3d_and_hydrogens, scrub_molecule_states
 from validation import full_validation
-
-try:
-    from molscrub import Scrub
-except ImportError:
-    Scrub = None
 
 app = FastAPI(
     title="LigandHub API",
@@ -149,48 +143,6 @@ def parse_smiles_records(input_path: str):
         )
 
     return records
-
-
-def scrub_molecule_states(
-    mol,
-    energy_minimization: bool | None = None,
-    minimization_max_iters: int = DEFAULT_MINIMIZATION_MAX_ITERS,
-):
-    if Scrub is None:
-        raise HTTPException(
-            status_code=500,
-            detail="molscrub is not installed in the runtime environment",
-        )
-
-    scrubber = Scrub(ph_low=7.4, ph_high=7.4)
-    scrubbed_states = list(scrubber(mol))
-
-    if not scrubbed_states:
-        raise HTTPException(status_code=400, detail="Scrub could not generate any ligand state")
-
-    if len(scrubbed_states) > MAX_SCRUBBED_STATES_PER_LIGAND:
-        raise HTTPException(
-            status_code=413,
-            detail={
-                "message": (
-                    "Scrub generated too many states for this ligand for the current prototype limit. "
-                    f"Maximum allowed states per ligand: {MAX_SCRUBBED_STATES_PER_LIGAND}"
-                ),
-                "suggestion": "Process this ligand separately or reduce the batch complexity.",
-                "limits": get_batch_limit_summary(),
-            },
-        )
-
-    prepared_states = []
-    for state in scrubbed_states:
-        state_with_geometry = ensure_3d_and_hydrogens(
-            state,
-            energy_minimization=energy_minimization,
-            minimization_max_iters=minimization_max_iters,
-        )
-        prepared_states.append(state_with_geometry)
-
-    return prepared_states
 
 
 def create_zip_response(zip_basename: str, files_to_write: dict[str, str], summary_payload: dict) -> Response:
