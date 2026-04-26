@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import uvicorn
 
-from meeko import MoleculePreparation, PDBQTWriterLegacy
+from meeko import MoleculePreparation
 
 from config import (
     ALLOWED_ORIGINS,
@@ -36,6 +36,7 @@ from utils import (
 from docking_io import detect_docking_results_format, export_docking_results_to_sdf_string
 from file_io import save_upload_file
 from molecule_io import load_molecule_from_file
+from pdbqt_writer import write_pdbqt_string
 from preparation import ensure_3d_and_hydrogens, scrub_molecule_states
 from validation import full_validation
 
@@ -228,13 +229,7 @@ async def prepare_ligand(
             if not mol_setups:
                 raise HTTPException(status_code=400, detail="Meeko could not prepare the ligand")
 
-            pdbqt_string, is_ok, error_msg = PDBQTWriterLegacy.write_string(mol_setups[0])
-
-            if not is_ok:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Error generating PDBQT: {error_msg}"
-                )
+            pdbqt_string = write_pdbqt_string(mol_setups[0])
 
             base_name = sanitize_filename(os.path.splitext(filename or file.filename)[0])
             output_filename = f"{base_name}_prepared.pdbqt"
@@ -351,13 +346,7 @@ async def prepare_ligand_batch(
                             )
 
                         for setup_index, mol_setup in enumerate(mol_setups, start=1):
-                            pdbqt_string, is_ok, error_msg = PDBQTWriterLegacy.write_string(mol_setup)
-
-                            if not is_ok:
-                                raise HTTPException(
-                                    status_code=500,
-                                    detail=f"Error generating PDBQT: {error_msg}",
-                                )
+                            pdbqt_string = write_pdbqt_string(mol_setup)
 
                             archive_name = f"line{record['line_number']}_{safe_ligand_id}_state{state_index}"
                             if len(mol_setups) > 1:
