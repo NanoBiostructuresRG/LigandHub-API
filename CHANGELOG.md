@@ -58,10 +58,11 @@ This development version focuses on internal backend restructuring. It does not 
 - Modules tightly coupled to FastAPI (e.g., `file_io.py`) were intentionally excluded from this first testing layer.
 - The initial testing gap has been partially mitigated with a pytest-based unit test suite.
 - Docker-based endpoint smoke test completed successfully for `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/prepare_ligand_batch`; individual and batch PDBQT generation were verified.
+- Pytest suite was validated inside a temporary Docker container using the existing `ligandhub-api:v0.1.1-dev` image with the current workspace mounted; all tests passed.
 - Remaining risks: automated coverage is still initial; integration/endpoint tests and RDKit/Meeko-heavy workflows are still pending.
 - Remaining risks: `batch_processing.py` remains a critical area because it coordinates flow control, limits, ZIP generation, per-molecule errors, and result accumulation.
 - Remaining risks: `file_io.py` still needs async tests with mocks or stubs for `UploadFile`.
-- Remaining risks: the pytest suite still needs to be validated inside the Docker container, not only in the local environment.
+- Remaining risks: Docker-based pytest execution is still manual and depends on mounting the current workspace because the existing image was built before `requirements-dev.txt` and `tests/` were added.
 - Remaining risks: endpoint smoke tests still need to be automated for `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/convert_pdbqt_to_sdf`.
 
 
