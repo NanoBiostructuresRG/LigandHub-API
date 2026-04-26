@@ -32,6 +32,9 @@ All notable changes to LigandHub-API will be documented in this file.
 - Updated `Dockerfile` to copy the full backend codebase using `COPY . .`, ensuring all refactored modules are included in the container build.
 - Cleaned malformed comments (mojibake) in `Dockerfile` without altering functional instructions.
 - Added `.dockerignore` to exclude caches, virtual environments, development artifacts, and large non-essential files from the Docker build context.
+- Added an initial unit test suite using pytest, covering core utility and validation modules.
+- Introduced `requirements-dev.txt` to isolate development dependencies.
+- Added `pytest.ini` for test configuration and standardized test discovery.
 
 
 ### Notes
@@ -51,6 +54,9 @@ This development version focuses on internal backend restructuring. It does not 
 - Docker image successfully built and validated locally; container execution and `/health` endpoint verified.
 - Resolved risk: local Docker build validation is complete for `ligandhub-api:v0.1.1-dev`.
 - Remaining risks: automated tests are still pending, and batch processing remains the most complex area of the backend.
+- Initial automated tests cover pure and low-risk modules: `validation.py`, `utils.py`, and `batch_processing.py`.
+- Test suite executed successfully with all tests passing.
+- Modules tightly coupled to FastAPI (e.g., `file_io.py`) were intentionally excluded from this first testing layer.
 
 
 
