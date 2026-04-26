@@ -25,6 +25,7 @@ All notable changes to LigandHub-API will be documented in this file.
 - Moved scrubbed molecule state generation into `preparation.py`, keeping batch endpoint behavior unchanged.
 - Extracted duplicated PDBQT string writing into `pdbqt_writer.py`.
 - Extracted Meeko molecule setup generation into `pdbqt_writer.py`, preserving endpoint-level preparation flow and batch behavior.
+- Extracted batch SMILES parsing logic into `batch_processing.py`.
 
 
 ### Notes
@@ -36,7 +37,7 @@ This development version focuses on internal backend restructuring. It does not 
 - Local functional checks passed for batch ligand preparation and individual ligand preparation after extracting `scrub_molecule_states`.
 - Local functional checks passed for individual and batch ligand preparation after extracting the PDBQT writer helper.
 - Local functional checks passed for individual and batch ligand preparation after extracting the Meeko setup helper.
-
+- Local functional checks passed for batch ligand preparation after extracting SMILES parsing helper.
 
 
 
