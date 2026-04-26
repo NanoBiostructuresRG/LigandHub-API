@@ -53,7 +53,7 @@ This development version focuses on internal backend restructuring. It does not 
 - The current repository structure and Docker configuration are ready for deployment testing on Render.
 - Docker image successfully built and validated locally; container execution and `/health` endpoint verified.
 - Resolved risk: local Docker build validation is complete for `ligandhub-api:v0.1.1-dev`.
-- Remaining risks: automated tests are still pending, and batch processing remains the most complex area of the backend.
+- Remaining risks: integration and endpoint tests are still pending, and batch processing remains the most complex area of the backend.
 - Initial automated tests cover pure and low-risk modules: `validation.py`, `utils.py`, and `batch_processing.py`.
 - Test suite executed successfully with all tests passing.
 - Modules tightly coupled to FastAPI (e.g., `file_io.py`) were intentionally excluded from this first testing layer.
