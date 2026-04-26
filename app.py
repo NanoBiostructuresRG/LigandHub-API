@@ -15,8 +15,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import uvicorn
 
-from meeko import MoleculePreparation
-
 from config import (
     ALLOWED_ORIGINS,
     DEFAULT_MINIMIZATION_MAX_ITERS,
@@ -36,7 +34,7 @@ from utils import (
 from docking_io import detect_docking_results_format, export_docking_results_to_sdf_string
 from file_io import save_upload_file
 from molecule_io import load_molecule_from_file
-from pdbqt_writer import write_pdbqt_string
+from pdbqt_writer import prepare_molecule_setups, write_pdbqt_string
 from preparation import ensure_3d_and_hydrogens, scrub_molecule_states
 from validation import full_validation
 
@@ -218,16 +216,12 @@ async def prepare_ligand(
                 minimization_max_iters=minimization_max_iters,
             )
 
-            merge_these = ("H",) if merge_h else ()
-            preparator = MoleculePreparation(
-                merge_these_atom_types=merge_these,
+            mol_setups = prepare_molecule_setups(
+                mol,
+                merge_h=merge_h,
                 charge_model=charge_model,
+                empty_error_detail="Meeko could not prepare the ligand",
             )
-
-            mol_setups = preparator.prepare(mol)
-
-            if not mol_setups:
-                raise HTTPException(status_code=400, detail="Meeko could not prepare the ligand")
 
             pdbqt_string = write_pdbqt_string(mol_setups[0])
 
@@ -301,7 +295,6 @@ async def prepare_ligand_batch(
             await save_upload_file(file, input_path, MAX_BATCH_UPLOAD_SIZE_BYTES)
 
             records = parse_smiles_records(input_path)
-            merge_these = ("H",) if merge_h else ()
             files_to_zip = {}
             results = []
             total_pdbqt_files = 0
@@ -333,17 +326,12 @@ async def prepare_ligand_batch(
                     generated_files = []
 
                     for state_index, scrubbed_mol in enumerate(scrubbed_states, start=1):
-                        preparator = MoleculePreparation(
-                            merge_these_atom_types=merge_these,
+                        mol_setups = prepare_molecule_setups(
+                            scrubbed_mol,
+                            merge_h=merge_h,
                             charge_model=charge_model,
+                            empty_error_detail="Meeko could not prepare the scrubbed ligand state",
                         )
-                        mol_setups = preparator.prepare(scrubbed_mol)
-
-                        if not mol_setups:
-                            raise HTTPException(
-                                status_code=400,
-                                detail="Meeko could not prepare the scrubbed ligand state",
-                            )
 
                         for setup_index, mol_setup in enumerate(mol_setups, start=1):
                             pdbqt_string = write_pdbqt_string(mol_setup)
