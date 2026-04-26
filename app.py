@@ -6,16 +6,19 @@ Endpoint: /prepare_ligand
 import os
 import tempfile
 import logging
-import io
 import json
-import zipfile
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import uvicorn
 
-from batch_processing import build_batch_archive_name, build_batch_summary, parse_smiles_records
+from batch_processing import (
+    build_batch_archive_name,
+    build_batch_summary,
+    create_zip_response,
+    parse_smiles_records,
+)
 from config import (
     ALLOWED_ORIGINS,
     DEFAULT_MINIMIZATION_MAX_ITERS,
@@ -99,27 +102,6 @@ async def validate_smiles_endpoint(smiles: str = Form(...)):
         "warnings": warnings,
         "smiles": smiles,
     }
-
-
-def create_zip_response(zip_basename: str, files_to_write: dict[str, str], summary_payload: dict) -> Response:
-    zip_buffer = io.BytesIO()
-
-    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        for archive_name, content in files_to_write.items():
-            zip_file.writestr(archive_name, content)
-
-        zip_file.writestr("summary.json", json.dumps(summary_payload, indent=2))
-
-    zip_bytes = zip_buffer.getvalue()
-    output_filename = f"{sanitize_filename(zip_basename)}_pdbqt_batch.zip"
-
-    return Response(
-        content=zip_bytes,
-        media_type="application/zip",
-        headers={
-            "Content-Disposition": f'attachment; filename="{output_filename}"'
-        },
-    )
 
 
 @app.post("/prepare_ligand")

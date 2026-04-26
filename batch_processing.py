@@ -1,7 +1,12 @@
+import io
+import json
+import zipfile
+
 from fastapi import HTTPException
+from fastapi.responses import Response
 
 from config import MAX_BATCH_MOLECULES
-from utils import get_batch_limit_summary
+from utils import get_batch_limit_summary, sanitize_filename
 
 
 def parse_smiles_records(input_path: str):
@@ -65,3 +70,24 @@ def build_batch_archive_name(record, safe_ligand_id: str, state_index: int, setu
         archive_name = f"{archive_name}_pose{setup_index}"
     archive_name = f"{archive_name}.pdbqt"
     return archive_name
+
+
+def create_zip_response(zip_basename: str, files_to_write: dict[str, str], summary_payload: dict) -> Response:
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for archive_name, content in files_to_write.items():
+            zip_file.writestr(archive_name, content)
+
+        zip_file.writestr("summary.json", json.dumps(summary_payload, indent=2))
+
+    zip_bytes = zip_buffer.getvalue()
+    output_filename = f"{sanitize_filename(zip_basename)}_pdbqt_batch.zip"
+
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{output_filename}"'
+        },
+    )
