@@ -27,6 +27,7 @@ All notable changes to LigandHub-API will be documented in this file.
 - Extracted Meeko molecule setup generation into `pdbqt_writer.py`, preserving endpoint-level preparation flow and batch behavior.
 - Extracted batch SMILES parsing logic into `batch_processing.py`.
 - Extracted batch summary construction into `batch_processing.py`.
+- Extracted batch archive filename construction into `batch_processing.py`.
 
 
 ### Notes
@@ -40,6 +41,7 @@ This development version focuses on internal backend restructuring. It does not 
 - Local functional checks passed for individual and batch ligand preparation after extracting the Meeko setup helper.
 - Local functional checks passed for batch ligand preparation after extracting SMILES parsing helper.
 - Local functional checks passed for batch ligand preparation after extracting the batch summary helper.
+- Local functional checks passed for batch ligand preparation after extracting archive naming helper.
 
 
 
