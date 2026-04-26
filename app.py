@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import uvicorn
 
-from batch_processing import parse_smiles_records
+from batch_processing import build_batch_summary, parse_smiles_records
 from config import (
     ALLOWED_ORIGINS,
     DEFAULT_MINIMIZATION_MAX_ITERS,
@@ -376,12 +376,7 @@ async def prepare_ligand_batch(
                     },
                 )
 
-            summary_payload = {
-                "total": len(records),
-                "successful": len(successful),
-                "failed": len(failed),
-                "details": results,
-            }
+            summary_payload = build_batch_summary(records, results)
 
             return create_zip_response(filename or file.filename, files_to_zip, summary_payload)
 

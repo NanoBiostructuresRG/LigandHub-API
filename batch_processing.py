@@ -45,3 +45,15 @@ def parse_smiles_records(input_path: str):
         )
 
     return records
+
+
+def build_batch_summary(records, results):
+    successful = [result for result in results if result["status"] == "success"]
+    failed = [result for result in results if result["status"] == "failed"]
+
+    return {
+        "total": len(records),
+        "successful": len(successful),
+        "failed": len(failed),
+        "details": results,
+    }
