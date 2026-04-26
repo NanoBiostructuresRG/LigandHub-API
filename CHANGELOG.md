@@ -62,9 +62,9 @@ This development version focuses on internal backend restructuring. It does not 
 - Remaining risks: automated coverage is still initial; integration/endpoint tests and RDKit/Meeko-heavy workflows are still pending.
 - Remaining risks: `batch_processing.py` remains a critical area because it coordinates flow control, limits, ZIP generation, per-molecule errors, and result accumulation.
 - Remaining risks: `file_io.py` still needs async tests with mocks or stubs for `UploadFile`.
-- Remaining risks: Docker-based pytest execution is still manual and depends on mounting the current workspace because the existing image was built before `requirements-dev.txt` and `tests/` were added.
-- Remaining risks: endpoint smoke tests still need to be automated for `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/convert_pdbqt_to_sdf`.
 - The Docker image was rebuilt after adding the test suite, and pytest was successfully executed inside the updated container image.
+- Remaining risks: Docker-based pytest execution is validated but still manual; it should be automated in a repeatable local or CI workflow.
+- Remaining risks: endpoint smoke tests still need to be automated for `/health`, `/limits`, `/validate`, `/prepare_ligand`, `/prepare_ligand_batch`, and `/convert_pdbqt_to_sdf`.
 
 
 
