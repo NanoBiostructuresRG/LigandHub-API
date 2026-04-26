@@ -21,6 +21,7 @@ All notable changes to LigandHub-API will be documented in this file.
 - Added local temporary test folder pattern `tmp_test/` to `.gitignore`.
 - Extracted upload file handling logic into `file_io.py`.
 - Extracted molecule loading logic into `molecule_io.py`.
+- Extracted the RDKit geometry, hydrogen addition, and minimization helper into `preparation.py`.
 
 
 ### Notes
@@ -28,6 +29,7 @@ All notable changes to LigandHub-API will be documented in this file.
 This development version focuses on internal backend restructuring. It does not intentionally introduce changes to frontend behavior or public endpoint usage.
 
 - Minimal local regression test completed after modular extraction: `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/convert_pdbqt_to_sdf` passed.
+- Local functional checks passed for individual ligand preparation and batch ligand preparation after extracting the preparation helper.
 
 
 ## [v0.1.0] - 2026-04-25
