@@ -4,9 +4,11 @@ Backend API for ligand preparation and docking-result conversion in LigandHub.
 
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
+Current development state: `v0.1.1`.
+
 ## What This API Does
 
-LigandHub-API currently exposes five primary HTTP endpoints:
+LigandHub-API currently preserves the public HTTP endpoints used by the v0.1.0 frontend:
 
 - `GET /health`: basic service health check
 - `GET /limits`: returns the current prototype limits configured for Render deployment
@@ -119,6 +121,12 @@ Fatal validation errors stop ligand preparation with a `400` response. Non-fatal
 
 ### `GET /health`
 
+Example:
+
+```bash
+curl http://localhost:8000/health
+```
+
 Returns:
 
 ```json
@@ -130,6 +138,12 @@ Returns:
 ### `GET /limits`
 
 Returns the active server-side limits for this prototype deployment.
+
+Example:
+
+```bash
+curl http://localhost:8000/limits
+```
 
 Example response:
 
@@ -193,7 +207,7 @@ Example:
 
 ```bash
 curl -X POST http://localhost:8000/validate \
-  -F "smiles=C(C)(C)(C)(C)C"
+  -F "smiles=CCO"
 ```
 
 Example response:
@@ -332,12 +346,35 @@ Key Python dependencies currently used by the API:
 - `scipy`
 - `gemmi`
 
+Testing dependencies are kept separate in `requirements-dev.txt`.
+
+## Project Structure
+
+The `dev-v0.1.1` backend is organized into small modules while preserving the public API contract:
+
+- `app.py`: FastAPI application and endpoint orchestration
+- `config.py`: runtime limits, defaults, CORS origins, and supported options
+- `validation.py`: SMILES and molecule validation
+- `file_io.py`: upload file handling
+- `molecule_io.py`: molecule loading from supported file formats
+- `preparation.py`: 3D generation, hydrogens, minimization, and scrubbed states
+- `pdbqt_writer.py`: Meeko setup generation and PDBQT writing
+- `batch_processing.py`: batch SMILES parsing, summaries, archive names, and ZIP responses
+- `docking_io.py`: docking-result format detection and SDF export
+- `utils.py`: shared small helpers
+
 ## Local Development
 
 Install dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+Install development/test dependencies:
+
+```bash
+pip install -r requirements-dev.txt
 ```
 
 Run locally:
@@ -352,6 +389,12 @@ Then open:
 http://localhost:8000/docs
 ```
 
+Run tests:
+
+```bash
+pytest
+```
+
 ## Render Deployment Notes
 
 This repository includes a `Dockerfile` that installs Python dependencies from `requirements.txt`.
@@ -363,6 +406,8 @@ Current deployment behavior:
 - the API starts with Uvicorn
 
 Because of this, dependency changes for deployment should be reflected in `requirements.txt`.
+
+The local `dev-v0.1.1` Docker image has been built and smoke-tested with the main endpoints. Development-only test dependencies remain outside `requirements.txt`.
 
 ## Current Scope
 
@@ -387,7 +432,7 @@ Not included yet:
 
 ## License
 
-Project-specific source code is licensed under the MIT License unless otherwise stated.
+Project-specific source code is licensed under the MIT License unless otherwise stated. See the LICENSE files for full details.
 
 Third-party dependencies keep their own licenses:
 
@@ -395,3 +440,10 @@ Third-party dependencies keep their own licenses:
 - Meeko: LGPL v2.1 or later
 - Gemmi: MPL 2.0 or LGPL v3
 - molscrub: GPL v3
+
+
+## Attribution
+If you use or adapt this material, please provide appropriate credit to the original authors and repository:
+
+> NanoBiostructures Research Group  
+> GitHub: https://github.com/NanoBiostructuresRG
