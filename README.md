@@ -4,7 +4,7 @@ Backend API for ligand preparation and docking-result conversion in LigandHub.
 
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
-Current development state: `dev-v0.1.1`.
+Current development state: `v0.1.1`.
 
 ## What This API Does
 
@@ -432,7 +432,7 @@ Not included yet:
 
 ## License
 
-Project-specific source code is licensed under the MIT License unless otherwise stated.
+Project-specific source code is licensed under the MIT License unless otherwise stated. See the LICENSE files for full details.
 
 Third-party dependencies keep their own licenses:
 
@@ -440,3 +440,10 @@ Third-party dependencies keep their own licenses:
 - Meeko: LGPL v2.1 or later
 - Gemmi: MPL 2.0 or LGPL v3
 - molscrub: GPL v3
+
+
+## Attribution
+If you use or adapt this material, please provide appropriate credit to the original authors and repository:
+
+> NanoBiostructures Research Group  
+> GitHub: https://github.com/NanoBiostructuresRG
