@@ -13,6 +13,24 @@ def test_health_endpoint_returns_ok():
     assert response.json() == {"status": "ok"}
 
 
+def test_limits_endpoint_returns_current_limit_contract():
+    response = client.get("/limits")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service_mode"] == "prototype"
+    assert isinstance(payload["notes"], list)
+    assert "limits" in payload
+
+    limits = payload["limits"]
+    assert limits["single_upload_max_bytes"] > 0
+    assert limits["batch_upload_max_bytes"] > 0
+    assert limits["batch_max_molecules"] > 0
+    assert limits["batch_max_scrubbed_states_per_ligand"] > 0
+    assert limits["batch_max_generated_pdbqt_files"] > 0
+    assert limits["batch_max_total_pdbqt_bytes"] > 0
+
+
 def test_validate_endpoint_accepts_valid_smiles_form_data():
     response = client.post("/validate", data={"smiles": "CCO"})
 
