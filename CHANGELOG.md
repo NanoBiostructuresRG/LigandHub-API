@@ -35,6 +35,8 @@ All notable changes to LigandHub-API will be documented in this file.
 - Added an initial unit test suite using pytest, covering core utility and validation modules.
 - Introduced `requirements-dev.txt` to isolate development dependencies.
 - Added `pytest.ini` for test configuration and standardized test discovery.
+- Added basic endpoint smoke tests using FastAPI `TestClient` for `/health` and `/validate`.
+- Added `httpx` to development dependencies for FastAPI `TestClient` support.
 
 
 ### Notes
@@ -55,6 +57,8 @@ This development version focuses on internal backend restructuring. It does not 
 - Resolved risk: local Docker build validation is complete for `ligandhub-api:v0.1.1-dev`.
 - Initial automated tests cover pure and low-risk modules: `validation.py`, `utils.py`, and `batch_processing.py`.
 - Test suite executed successfully with all tests passing.
+- Basic automated endpoint smoke tests cover `GET /health`, `POST /validate` with valid SMILES, and `POST /validate` with invalid SMILES using form data.
+- Test suite executed successfully after adding endpoint smoke tests: 23 tests passed.
 - Modules tightly coupled to FastAPI (e.g., `file_io.py`) were intentionally excluded from this first testing layer.
 - The initial testing gap has been partially mitigated with a pytest-based unit test suite.
 - Docker-based endpoint smoke test completed successfully for `/health`, `/limits`, `/validate`, `/prepare_ligand`, and `/prepare_ligand_batch`; individual and batch PDBQT generation were verified.
