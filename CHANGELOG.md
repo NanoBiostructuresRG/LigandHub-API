@@ -2,6 +2,20 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.2] - 2026-04-29
+
+### Added
+
+- Added integration test coverage for `POST /prepare_ligand`.
+- Added integration test coverage for `POST /prepare_ligand_batch`.
+- Added integration test coverage for `POST /convert_pdbqt_to_sdf`.
+- Added controlled negative endpoint input tests for ligand preparation and batch preparation.
+- Added a GitHub Actions workflow to run pytest on push and pull requests.
+
+### Changed
+
+- Updated `GET /health` to report RDKit and Meeko availability while preserving `status: "ok"`.
+
 ## [v0.1.1] - 2026-04-29
 
 ### Planned
