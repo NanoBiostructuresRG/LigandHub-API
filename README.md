@@ -350,7 +350,7 @@ Testing dependencies are kept separate in `requirements-dev.txt`.
 
 ## Project Structure
 
-The `dev-v0.1.1` backend is organized into small modules while preserving the public API contract:
+The `v0.1.1` backend is organized into small modules while preserving the public API contract:
 
 - `app.py`: FastAPI application and endpoint orchestration
 - `config.py`: runtime limits, defaults, CORS origins, and supported options
@@ -407,7 +407,7 @@ Current deployment behavior:
 
 Because of this, dependency changes for deployment should be reflected in `requirements.txt`.
 
-The local `dev-v0.1.1` Docker image has been built and smoke-tested with the main endpoints. Development-only test dependencies remain outside `requirements.txt`.
+The local `v0.1.1` Docker image has been built and smoke-tested with the main endpoints. Development-only test dependencies remain outside `requirements.txt`.
 
 ## Current Scope
 
