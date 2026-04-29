@@ -10,7 +10,10 @@ def test_health_endpoint_returns_ok():
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert "rdkit" in payload
+    assert "meeko" in payload
 
 
 def test_limits_endpoint_returns_current_limit_contract():

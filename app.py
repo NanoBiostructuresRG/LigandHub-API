@@ -7,6 +7,7 @@ import os
 import tempfile
 import logging
 import json
+import importlib.util
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -71,7 +72,11 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "rdkit": importlib.util.find_spec("rdkit") is not None,
+        "meeko": importlib.util.find_spec("meeko") is not None,
+    }
 
 
 @app.get("/limits")
