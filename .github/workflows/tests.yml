@@ -11,6 +11,37 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whitespace
+        run: git diff-tree --check --no-commit-id --root -r HEAD
+
+      - name: Check text line endings
+        shell: bash
+        run: |
+          found=0
+          while IFS= read -r -d '' file; do
+            if grep -q $'\r' "$file"; then
+              echo "CR character detected in $file"
+              found=1
+            fi
+          done < <(
+            git ls-files -z -- \
+              '*.py' \
+              '*.md' \
+              '*.yml' \
+              '*.yaml' \
+              '*.txt' \
+              '*.json' \
+              '*.smi' \
+              '*.smiles' \
+              '*.sh' \
+              'Dockerfile' \
+              '*.ini' \
+              'requirements*.txt'
+          )
+          exit "$found"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,4 +55,4 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run pytest
-        run: pytest
+        run: pytest -q

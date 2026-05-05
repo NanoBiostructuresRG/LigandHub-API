@@ -2,6 +2,16 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.4] - 2026-05-04
+
+### Added
+
+- Added a repository line ending policy with `.gitattributes`.
+- Added CI hygiene checks for whitespace and text line endings.
+- Added unit tests for docking result format detection.
+- Extended `/health` degraded tests to cover missing `rdkit`, `meeko`, and `molscrub`.
+- Added tests for generated batch PDBQT file-count and byte-size limits.
+
 ## [v0.1.3] - 2026-05-04
 
 ### Changed

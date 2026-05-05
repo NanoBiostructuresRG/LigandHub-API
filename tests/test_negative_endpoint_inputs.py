@@ -11,6 +11,21 @@ from app import app
 client = TestClient(app)
 
 
+def patch_successful_batch_preparation(monkeypatch, pdbqt_string="PDBQT DATA"):
+    monkeypatch.setattr(app_module, "full_validation", lambda smiles: (object(), [], []))
+    monkeypatch.setattr(
+        app_module,
+        "scrub_molecule_states",
+        lambda mol, **kwargs: [object()],
+    )
+    monkeypatch.setattr(
+        app_module,
+        "prepare_molecule_setups",
+        lambda mol, **kwargs: [object()],
+    )
+    monkeypatch.setattr(app_module, "write_pdbqt_string", lambda mol_setup: pdbqt_string)
+
+
 def test_prepare_ligand_rejects_empty_upload(workspace_tempdir):
     workspace_tempdir(app_module, "prepare_ligand_empty_upload")
 
@@ -150,6 +165,53 @@ def test_prepare_ligand_batch_rejects_upload_over_size_limit(monkeypatch, worksp
 
     assert response.status_code == 413
     assert response.json()["detail"]["message"] == "Uploaded file exceeds the 5 byte limit"
+
+
+def test_prepare_ligand_batch_rejects_too_many_generated_pdbqt_files(monkeypatch, workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_pdbqt_file_limit")
+    monkeypatch.setattr(app_module, "MAX_BATCH_PDBQT_FILES", 1)
+    patch_successful_batch_preparation(monkeypatch)
+
+    response = client.post(
+        "/prepare_ligand_batch",
+        data={
+            "filename": "library",
+            "charge_model": "zero",
+        },
+        files={
+            "file": (
+                "library.smi",
+                io.BytesIO(b"CCO ethanol\nCCN ethylamine\n"),
+                "text/plain",
+            ),
+        },
+    )
+
+    assert response.status_code == 413
+    detail = response.json()["detail"]
+    assert "generated too many output files" in detail["message"]
+    assert "Maximum allowed: 1" in detail["message"]
+
+
+def test_prepare_ligand_batch_rejects_too_many_generated_pdbqt_bytes(monkeypatch, workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_pdbqt_byte_limit")
+    monkeypatch.setattr(app_module, "MAX_BATCH_TOTAL_PDBQT_BYTES", 5)
+    patch_successful_batch_preparation(monkeypatch, pdbqt_string="123456")
+
+    response = client.post(
+        "/prepare_ligand_batch",
+        data={
+            "filename": "library",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("library.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 413
+    detail = response.json()["detail"]
+    assert detail["message"] == "Batch request generated too much output data for the current prototype limit."
 
 
 def test_prepare_ligand_batch_reports_failed_count_for_invalid_smiles(workspace_tempdir):
