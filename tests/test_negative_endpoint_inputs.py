@@ -1,8 +1,5 @@
 import io
 import json
-from pathlib import Path
-import shutil
-import uuid
 import zipfile
 
 from fastapi.testclient import TestClient
@@ -14,26 +11,8 @@ from app import app
 client = TestClient(app)
 
 
-def use_workspace_temporary_directory(monkeypatch, name: str):
-    temp_root = Path("tmp_test") / name
-    temp_root.mkdir(parents=True, exist_ok=True)
-
-    class WorkspaceTemporaryDirectory:
-        def __init__(self):
-            self.name = str(temp_root / f"tmp_{uuid.uuid4().hex}")
-
-        def __enter__(self):
-            Path(self.name).mkdir(parents=True, exist_ok=False)
-            return self.name
-
-        def __exit__(self, exc_type, exc, traceback):
-            shutil.rmtree(self.name, ignore_errors=True)
-
-    monkeypatch.setattr(app_module.tempfile, "TemporaryDirectory", WorkspaceTemporaryDirectory)
-
-
-def test_prepare_ligand_rejects_empty_upload(monkeypatch):
-    use_workspace_temporary_directory(monkeypatch, "prepare_ligand_empty_upload")
+def test_prepare_ligand_rejects_empty_upload(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_empty_upload")
 
     response = client.post(
         "/prepare_ligand",
@@ -50,8 +29,78 @@ def test_prepare_ligand_rejects_empty_upload(monkeypatch):
     assert response.json()["detail"] == "Uploaded file is empty"
 
 
-def test_prepare_ligand_batch_rejects_empty_upload(monkeypatch):
-    use_workspace_temporary_directory(monkeypatch, "prepare_ligand_batch_empty_upload")
+def test_prepare_ligand_rejects_invalid_charge_model():
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "ethanol",
+            "charge_model": "bad-model",
+        },
+        files={
+            "file": ("ethanol.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Invalid 'charge_model'" in response.json()["detail"]
+
+
+def test_prepare_ligand_rejects_minimization_max_iters_out_of_range():
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "ethanol",
+            "charge_model": "zero",
+            "minimization_max_iters": "0",
+        },
+        files={
+            "file": ("ethanol.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert "'minimization_max_iters' must be between 1 and 2000" == response.json()["detail"]
+
+
+def test_prepare_ligand_rejects_invalid_extension(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_invalid_extension")
+
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "ethanol",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("ethanol.xyz", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported file format. Use SDF, MOL2, PDB, or a SMILES text file."
+
+
+def test_prepare_ligand_rejects_upload_over_size_limit(monkeypatch, workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_upload_limit")
+    monkeypatch.setattr(app_module, "MAX_UPLOAD_SIZE_BYTES", 5)
+
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "ethanol",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("ethanol.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["message"] == "Uploaded file exceeds the 5 byte limit"
+
+
+def test_prepare_ligand_batch_rejects_empty_upload(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_empty_upload")
 
     response = client.post(
         "/prepare_ligand_batch",
@@ -68,8 +117,43 @@ def test_prepare_ligand_batch_rejects_empty_upload(monkeypatch):
     assert response.json()["detail"] == "Uploaded file is empty"
 
 
-def test_prepare_ligand_batch_reports_failed_count_for_invalid_smiles(monkeypatch):
-    use_workspace_temporary_directory(monkeypatch, "prepare_ligand_batch_invalid_smiles")
+def test_prepare_ligand_batch_rejects_invalid_extension():
+    response = client.post(
+        "/prepare_ligand_batch",
+        data={
+            "filename": "library",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("library.csv", io.BytesIO(b"CCO ethanol\n"), "text/csv"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Batch processing requires a .smi, .smiles, or .txt SMILES library file"
+
+
+def test_prepare_ligand_batch_rejects_upload_over_size_limit(monkeypatch, workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_upload_limit")
+    monkeypatch.setattr(app_module, "MAX_BATCH_UPLOAD_SIZE_BYTES", 5)
+
+    response = client.post(
+        "/prepare_ligand_batch",
+        data={
+            "filename": "library",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("library.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["message"] == "Uploaded file exceeds the 5 byte limit"
+
+
+def test_prepare_ligand_batch_reports_failed_count_for_invalid_smiles(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_invalid_smiles")
 
     response = client.post(
         "/prepare_ligand_batch",
@@ -94,3 +178,44 @@ def test_prepare_ligand_batch_reports_failed_count_for_invalid_smiles(monkeypatc
     assert summary["total"] == 2
     assert summary["successful"] == 1
     assert summary["failed"] == 1
+
+
+def test_prepare_ligand_batch_rejects_when_all_ligands_fail(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_all_failed")
+
+    response = client.post(
+        "/prepare_ligand_batch",
+        data={
+            "filename": "invalid_library",
+            "charge_model": "zero",
+        },
+        files={
+            "file": (
+                "invalid_library.smi",
+                io.BytesIO(b"C1CC bad_ring\nnot_smiles syntax\n"),
+                "text/plain",
+            ),
+        },
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["message"] == "No PDBQT files could be generated from the uploaded library"
+    assert detail["summary"]["total"] == 2
+    assert detail["summary"]["successful"] == 0
+    assert detail["summary"]["failed"] == 2
+
+
+def test_convert_pdbqt_to_sdf_rejects_invalid_extension():
+    response = client.post(
+        "/convert_pdbqt_to_sdf",
+        data={
+            "filename": "docked",
+        },
+        files={
+            "file": ("docked.sdf", io.BytesIO(b"not pdbqt"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported docking results format. Use PDBQT or DLG files."

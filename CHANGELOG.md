@@ -2,6 +2,20 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [dev-v0.1.3] - 2026-05-04
+
+### Changed
+
+- Updated `GET /health` to report `status: "ok"` only when critical dependencies are available, and `status: "degraded"` otherwise.
+- Added a `dependencies` object to `/health` with explicit `rdkit`, `meeko`, and `molscrub` availability.
+- Preserved previous flat `/health` dependency keys such as `rdkit` and `meeko` for compatibility.
+- Centralized minimal file extension validation in `file_io.py`.
+- Normalized line endings and trailing whitespace in modified files.
+
+### Added
+
+- Added tests for negative validator cases, upload limits, invalid file extensions, fully failed batch jobs, and `file_io.py`.
+
 ## [v0.1.2] - 2026-04-29
 
 ### Added

@@ -1,6 +1,4 @@
 from pathlib import Path
-import shutil
-import uuid
 
 from fastapi.testclient import TestClient
 
@@ -11,23 +9,9 @@ from app import app
 client = TestClient(app)
 
 
-def test_prepare_ligand_endpoint_returns_pdbqt_for_ethanol_smiles(monkeypatch):
+def test_prepare_ligand_endpoint_returns_pdbqt_for_ethanol_smiles(workspace_tempdir):
     fixture_path = Path(__file__).parent / "fixtures" / "ethanol.smi"
-    temp_root = Path("tmp_test") / "prepare_ligand_endpoint"
-    temp_root.mkdir(parents=True, exist_ok=True)
-
-    class WorkspaceTemporaryDirectory:
-        def __init__(self):
-            self.name = str(temp_root / f"tmp_{uuid.uuid4().hex}")
-
-        def __enter__(self):
-            Path(self.name).mkdir(parents=True, exist_ok=False)
-            return self.name
-
-        def __exit__(self, exc_type, exc, traceback):
-            shutil.rmtree(self.name, ignore_errors=True)
-
-    monkeypatch.setattr(app_module.tempfile, "TemporaryDirectory", WorkspaceTemporaryDirectory)
+    workspace_tempdir(app_module, "prepare_ligand_endpoint")
 
     with fixture_path.open("rb") as ligand_file:
         response = client.post(

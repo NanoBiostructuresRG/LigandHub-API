@@ -4,6 +4,16 @@ from config import MAX_BATCH_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_BYTES
 from utils import get_batch_limit_summary
 
 
+def validate_file_extension(filename: str, allowed_extensions: set[str], error_detail: str) -> str:
+    normalized_name = filename.lower()
+
+    for extension in allowed_extensions:
+        if normalized_name.endswith(extension):
+            return extension
+
+    raise HTTPException(status_code=400, detail=error_detail)
+
+
 async def save_upload_file(upload_file: UploadFile, destination_path: str, max_size_bytes: int) -> None:
     total_size = 0
     chunk_size = 1024 * 1024

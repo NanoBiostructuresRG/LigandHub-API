@@ -6,14 +6,43 @@ from app import app
 client = TestClient(app)
 
 
-def test_health_endpoint_returns_ok():
+def test_health_endpoint_returns_ok_when_dependencies_are_available(monkeypatch):
+    monkeypatch.setattr(
+        "app.importlib.util.find_spec",
+        lambda package_name: object(),
+    )
+
     response = client.get("/health")
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert "rdkit" in payload
-    assert "meeko" in payload
+    assert payload["dependencies"] == {
+        "rdkit": True,
+        "meeko": True,
+        "molscrub": True,
+    }
+    assert payload["rdkit"] is True
+    assert payload["meeko"] is True
+    assert payload["molscrub"] is True
+
+
+def test_health_endpoint_returns_degraded_when_critical_dependency_is_missing(monkeypatch):
+    def find_spec(package_name):
+        return None if package_name == "molscrub" else object()
+
+    monkeypatch.setattr("app.importlib.util.find_spec", find_spec)
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "degraded"
+    assert payload["dependencies"] == {
+        "rdkit": True,
+        "meeko": True,
+        "molscrub": False,
+    }
 
 
 def test_limits_endpoint_returns_current_limit_contract():
