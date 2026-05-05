@@ -2,6 +2,19 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.5] - 2026-05-05
+
+### Added
+
+- Added real molecule fixtures for `.smi`, `.sdf`, and `.pdb` ligand inputs.
+- Added unit tests for `molecule_io.load_molecule_from_file`.
+- Added an integration test for `POST /prepare_ligand` using an `.sdf` input file.
+
+### Notes
+
+- No public API changes were introduced.
+- `.mol2` coverage was intentionally left out to keep this version small and stable.
+
 ## [v0.1.4] - 2026-05-04
 
 ### Added
