@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app import app
@@ -27,9 +28,10 @@ def test_health_endpoint_returns_ok_when_dependencies_are_available(monkeypatch)
     assert payload["molscrub"] is True
 
 
-def test_health_endpoint_returns_degraded_when_critical_dependency_is_missing(monkeypatch):
+@pytest.mark.parametrize("missing_dependency", ["rdkit", "meeko", "molscrub"])
+def test_health_endpoint_returns_degraded_when_critical_dependency_is_missing(monkeypatch, missing_dependency):
     def find_spec(package_name):
-        return None if package_name == "molscrub" else object()
+        return None if package_name == missing_dependency else object()
 
     monkeypatch.setattr("app.importlib.util.find_spec", find_spec)
 
@@ -38,11 +40,11 @@ def test_health_endpoint_returns_degraded_when_critical_dependency_is_missing(mo
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "degraded"
-    assert payload["dependencies"] == {
-        "rdkit": True,
-        "meeko": True,
-        "molscrub": False,
-    }
+    assert payload["dependencies"][missing_dependency] is False
+    assert payload[missing_dependency] is False
+    for available_dependency in {"rdkit", "meeko", "molscrub"} - {missing_dependency}:
+        assert payload["dependencies"][available_dependency] is True
+        assert payload[available_dependency] is True
 
 
 def test_limits_endpoint_returns_current_limit_contract():
