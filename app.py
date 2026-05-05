@@ -36,7 +36,7 @@ from utils import (
     validate_minimization_max_iters,
 )
 from docking_io import detect_docking_results_format, export_docking_results_to_sdf_string
-from file_io import save_upload_file
+from file_io import save_upload_file, validate_file_extension
 from molecule_io import load_molecule_from_file
 from pdbqt_writer import prepare_molecule_setups, write_pdbqt_string
 from preparation import ensure_3d_and_hydrogens, scrub_molecule_states
@@ -72,10 +72,16 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {
-        "status": "ok",
+    dependencies = {
         "rdkit": importlib.util.find_spec("rdkit") is not None,
         "meeko": importlib.util.find_spec("meeko") is not None,
+        "molscrub": importlib.util.find_spec("molscrub") is not None,
+    }
+
+    return {
+        "status": "ok" if all(dependencies.values()) else "degraded",
+        "dependencies": dependencies,
+        **dependencies,
     }
 
 
@@ -217,12 +223,11 @@ async def prepare_ligand_batch(
     if not file.filename:
         raise HTTPException(status_code=400, detail="No input filename provided")
 
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in {".smi", ".smiles", ".txt"}:
-        raise HTTPException(
-            status_code=400,
-            detail="Batch processing requires a .smi, .smiles, or .txt SMILES library file",
-        )
+    validate_file_extension(
+        file.filename,
+        {".smi", ".smiles", ".txt"},
+        "Batch processing requires a .smi, .smiles, or .txt SMILES library file",
+    )
 
     charge_model = charge_model.strip().lower()
     if charge_model not in SUPPORTED_CHARGE_MODELS:

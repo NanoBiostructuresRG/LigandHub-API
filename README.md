@@ -4,13 +4,13 @@ Backend API for ligand preparation and docking-result conversion in LigandHub.
 
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
-Current development state: `v0.1.2`.
+Current development state: `dev-v0.1.3`.
 
 ## What This API Does
 
 LigandHub-API currently preserves the public HTTP endpoints used by the v0.1.0 frontend:
 
-- `GET /health`: basic service health check with RDKit and Meeko availability
+- `GET /health`: service health check with RDKit, Meeko, and molscrub availability
 - `GET /limits`: returns the current prototype limits configured for Render deployment
 - `POST /validate`: validates one SMILES string without running ligand preparation
 - `POST /prepare_ligand`: prepares a single ligand and returns a `.pdbqt`
@@ -132,10 +132,18 @@ Returns:
 ```json
 {
   "status": "ok",
+  "dependencies": {
+    "rdkit": true,
+    "meeko": true,
+    "molscrub": true
+  },
   "rdkit": true,
-  "meeko": true
+  "meeko": true,
+  "molscrub": true
 }
 ```
+
+`status` is `"ok"` when all critical dependencies are available and `"degraded"` when one or more are missing.
 
 ### `GET /limits`
 
@@ -350,11 +358,11 @@ Key Python dependencies currently used by the API:
 
 Testing dependencies are kept separate in `requirements-dev.txt`.
 
-`v0.1.2` adds automated integration tests for `/prepare_ligand`, `/prepare_ligand_batch`, `/convert_pdbqt_to_sdf`, and negative input cases.
+`dev-v0.1.3` adds hardening tests for negative validation cases, upload limits, invalid file extensions, fully failed batch jobs, and `file_io.py`.
 
 ## Project Structure
 
-The `v0.1.2` backend is organized into small modules while preserving the public API contract:
+The `dev-v0.1.3` backend is organized into small modules while preserving the public API contract:
 
 - `app.py`: FastAPI application and endpoint orchestration
 - `config.py`: runtime limits, defaults, CORS origins, and supported options

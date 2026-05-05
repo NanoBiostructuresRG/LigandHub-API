@@ -1,6 +1,5 @@
 import io
 from pathlib import Path
-import shutil
 import uuid
 
 from fastapi.testclient import TestClient
@@ -13,27 +12,14 @@ from app import app
 client = TestClient(app)
 
 
-def test_convert_pdbqt_to_sdf_endpoint_returns_sdf_from_prepared_ethanol(monkeypatch):
+def test_convert_pdbqt_to_sdf_endpoint_returns_sdf_from_prepared_ethanol(monkeypatch, workspace_tempdir):
     fixture_path = Path(__file__).parent / "fixtures" / "ethanol.smi"
-    temp_root = Path("tmp_test") / "convert_pdbqt_to_sdf_endpoint"
-    temp_root.mkdir(parents=True, exist_ok=True)
-
-    class WorkspaceTemporaryDirectory:
-        def __init__(self):
-            self.name = str(temp_root / f"tmp_{uuid.uuid4().hex}")
-
-        def __enter__(self):
-            Path(self.name).mkdir(parents=True, exist_ok=False)
-            return self.name
-
-        def __exit__(self, exc_type, exc, traceback):
-            shutil.rmtree(self.name, ignore_errors=True)
+    temp_root = workspace_tempdir(app_module, "convert_pdbqt_to_sdf_endpoint")
 
     def workspace_named_temporary_file(mode="w+", suffix="", encoding=None, **kwargs):
         output_path = temp_root / f"tmp_{uuid.uuid4().hex}{suffix}"
         return output_path.open(mode=mode, encoding=encoding)
 
-    monkeypatch.setattr(app_module.tempfile, "TemporaryDirectory", WorkspaceTemporaryDirectory)
     monkeypatch.setattr(docking_io.tempfile, "NamedTemporaryFile", workspace_named_temporary_file)
 
     with fixture_path.open("rb") as ligand_file:

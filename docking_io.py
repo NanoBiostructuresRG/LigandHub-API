@@ -5,20 +5,21 @@ from fastapi import HTTPException
 from meeko import PDBQTMolecule, RDKitMolCreate
 from rdkit import Chem
 
+from file_io import validate_file_extension
+
 
 def detect_docking_results_format(original_filename: str) -> str:
-    normalized_name = original_filename.lower()
+    ext = validate_file_extension(
+        original_filename,
+        {".pdbqt", ".pdbqt.gz", ".dlg", ".dlg.gz"},
+        "Unsupported docking results format. Use PDBQT or DLG files.",
+    )
 
-    if normalized_name.endswith(".pdbqt") or normalized_name.endswith(".pdbqt.gz"):
+    if ext in {".pdbqt", ".pdbqt.gz"}:
         return "pdbqt"
 
-    if normalized_name.endswith(".dlg") or normalized_name.endswith(".dlg.gz"):
+    if ext in {".dlg", ".dlg.gz"}:
         return "dlg"
-
-    raise HTTPException(
-        status_code=400,
-        detail="Unsupported docking results format. Use PDBQT or DLG files."
-    )
 
 
 def export_docking_results_to_sdf_string(input_path: str, docking_format: str) -> str:

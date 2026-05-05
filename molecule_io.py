@@ -1,13 +1,16 @@
-import os
-
 from fastapi import HTTPException
 from rdkit import Chem
 
+from file_io import validate_file_extension
 from validation import full_validation, validate_loaded_molecule
 
 
 def load_molecule_from_file(input_path: str, original_filename: str):
-    ext = os.path.splitext(original_filename)[1].lower()
+    ext = validate_file_extension(
+        original_filename,
+        {".smi", ".smiles", ".txt", ".sdf", ".mol2", ".pdb"},
+        "Unsupported file format. Use SDF, MOL2, PDB, or a SMILES text file.",
+    )
 
     if ext in {".smi", ".smiles", ".txt"}:
         with open(input_path, "r", encoding="utf-8") as f:
@@ -47,8 +50,3 @@ def load_molecule_from_file(input_path: str, original_filename: str):
         if mol is None:
             raise HTTPException(status_code=400, detail="Could not read molecule from PDB")
         return mol, validate_loaded_molecule(mol)
-
-    raise HTTPException(
-        status_code=400,
-        detail="Unsupported file format. Use SDF, MOL2, PDB, or a SMILES text file."
-    )
