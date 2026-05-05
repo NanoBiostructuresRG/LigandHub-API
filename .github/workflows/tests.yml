@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check whitespace
         run: git diff-tree --check --no-commit-id --root -r HEAD
