@@ -2,7 +2,7 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
-## [dev-v0.1.3] - 2026-05-04
+## [v0.1.3] - 2026-05-04
 
 ### Changed
 

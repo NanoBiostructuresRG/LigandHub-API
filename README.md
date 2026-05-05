@@ -4,7 +4,7 @@ Backend API for ligand preparation and docking-result conversion in LigandHub.
 
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
-Current development state: `dev-v0.1.3`.
+Current version: `v0.1.3`.
 
 ## What This API Does
 
@@ -358,11 +358,11 @@ Key Python dependencies currently used by the API:
 
 Testing dependencies are kept separate in `requirements-dev.txt`.
 
-`dev-v0.1.3` adds hardening tests for negative validation cases, upload limits, invalid file extensions, fully failed batch jobs, and `file_io.py`.
+`v0.1.3` adds hardening tests for negative validation cases, upload limits, invalid file extensions, fully failed batch jobs, and `file_io.py`.
 
 ## Project Structure
 
-The `dev-v0.1.3` backend is organized into small modules while preserving the public API contract:
+The `v0.1.3` backend is organized into small modules while preserving the public API contract:
 
 - `app.py`: FastAPI application and endpoint orchestration
 - `config.py`: runtime limits, defaults, CORS origins, and supported options
