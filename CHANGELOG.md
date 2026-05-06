@@ -2,6 +2,17 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.6] - 2026-05-05
+
+### Added
+
+- Added negative tests for invalid ligand input files.
+- Confirmed `POST /prepare_ligand` returns `400` for invalid supported ligand files.
+
+### Fixed
+
+- Fixed unreadable or empty SDF inputs returning server errors instead of client errors.
+
 ## [v0.1.5] - 2026-05-05
 
 ### Added
