@@ -58,3 +58,47 @@ def test_load_molecule_from_file_rejects_invalid_sdf_file():
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "Could not read molecule from SDF"
+
+
+def test_load_molecule_from_file_rejects_empty_sdf_file():
+    empty_file = output_path("empty.sdf")
+    empty_file.write_text("", encoding="utf-8")
+
+    with pytest.raises(HTTPException) as exc_info:
+        load_molecule_from_file(str(empty_file), "empty.sdf")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Could not read molecule from SDF"
+
+
+def test_load_molecule_from_file_rejects_sdf_without_valid_molecules():
+    invalid_file = output_path("no_valid_molecules.sdf")
+    invalid_file.write_text("$$$$\n", encoding="utf-8")
+
+    with pytest.raises(HTTPException) as exc_info:
+        load_molecule_from_file(str(invalid_file), "no_valid_molecules.sdf")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Could not read molecule from SDF"
+
+
+def test_load_molecule_from_file_rejects_invalid_pdb_file():
+    invalid_file = output_path("invalid.pdb")
+    invalid_file.write_text("not a pdb\n", encoding="utf-8")
+
+    with pytest.raises(HTTPException) as exc_info:
+        load_molecule_from_file(str(invalid_file), "invalid.pdb")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Could not read molecule from PDB"
+
+
+def test_load_molecule_from_file_rejects_supported_extension_with_wrong_content():
+    invalid_file = output_path("wrong_content.txt")
+    invalid_file.write_text("not_a_smiles ligand\n", encoding="utf-8")
+
+    with pytest.raises(HTTPException) as exc_info:
+        load_molecule_from_file(str(invalid_file), "wrong_content.txt")
+
+    assert exc_info.value.status_code == 400
+    assert "Validation failed" in exc_info.value.detail["message"]

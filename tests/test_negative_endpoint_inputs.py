@@ -95,6 +95,42 @@ def test_prepare_ligand_rejects_invalid_extension(workspace_tempdir):
     assert response.json()["detail"] == "Unsupported file format. Use SDF, MOL2, PDB, or a SMILES text file."
 
 
+def test_prepare_ligand_rejects_invalid_sdf_file(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_invalid_sdf")
+
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "invalid_sdf",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("invalid.sdf", io.BytesIO(b"not an sdf\n"), "chemical/x-mdl-sdfile"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Could not read molecule from SDF"
+
+
+def test_prepare_ligand_rejects_invalid_pdb_file(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_invalid_pdb")
+
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "invalid_pdb",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("invalid.pdb", io.BytesIO(b"not a pdb\n"), "chemical/x-pdb"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Could not read molecule from PDB"
+
+
 def test_prepare_ligand_rejects_upload_over_size_limit(monkeypatch, workspace_tempdir):
     workspace_tempdir(app_module, "prepare_ligand_upload_limit")
     monkeypatch.setattr(app_module, "MAX_UPLOAD_SIZE_BYTES", 5)
