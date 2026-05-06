@@ -12,29 +12,35 @@ from utils import get_batch_limit_summary, sanitize_filename
 def parse_smiles_records(input_path: str):
     records = []
 
-    with open(input_path, "r", encoding="utf-8") as handle:
-        for line_number, raw_line in enumerate(handle, start=1):
-            line = raw_line.strip()
-            if not line or line.startswith("#"):
-                continue
+    try:
+        with open(input_path, "r", encoding="utf-8") as handle:
+            for line_number, raw_line in enumerate(handle, start=1):
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
 
-            parts = line.split()
-            if len(parts) < 2:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "Batch processing requires a .smi file with at least two columns per line: "
-                        "SMILES and ligand ID"
-                    ),
+                parts = line.split()
+                if len(parts) < 2:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            "Batch processing requires a .smi file with at least two columns per line: "
+                            "SMILES and ligand ID"
+                        ),
+                    )
+
+                records.append(
+                    {
+                        "line_number": line_number,
+                        "smiles": parts[0],
+                        "ligand_id": parts[1],
+                    }
                 )
-
-            records.append(
-                {
-                    "line_number": line_number,
-                    "smiles": parts[0],
-                    "ligand_id": parts[1],
-                }
-            )
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=400,
+            detail="Batch SMILES library files must be valid UTF-8 text",
+        )
 
     if not records:
         raise HTTPException(status_code=400, detail="No valid molecules found in .smi file")

@@ -44,6 +44,24 @@ def test_prepare_ligand_rejects_empty_upload(workspace_tempdir):
     assert response.json()["detail"] == "Uploaded file is empty"
 
 
+def test_prepare_ligand_rejects_non_utf8_smiles_upload(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_non_utf8_smiles")
+
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "bad_encoding",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("bad_encoding.smi", io.BytesIO(b"\xff\xfe\xfa"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert "utf-8" in response.json()["detail"].lower() or "text" in response.json()["detail"].lower()
+
+
 def test_prepare_ligand_rejects_invalid_charge_model():
     response = client.post(
         "/prepare_ligand",
@@ -150,6 +168,29 @@ def test_prepare_ligand_rejects_upload_over_size_limit(monkeypatch, workspace_te
     assert response.json()["detail"]["message"] == "Uploaded file exceeds the 5 byte limit"
 
 
+def test_prepare_ligand_preserves_500_for_unexpected_internal_failure(monkeypatch, workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_internal_failure")
+
+    def fail_pdbqt_write(mol_setup):
+        raise RuntimeError("simulated internal failure")
+
+    monkeypatch.setattr(app_module, "write_pdbqt_string", fail_pdbqt_write)
+
+    response = client.post(
+        "/prepare_ligand",
+        data={
+            "filename": "ethanol",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("ethanol.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.status_code != 400
+
+
 def test_prepare_ligand_batch_rejects_empty_upload(workspace_tempdir):
     workspace_tempdir(app_module, "prepare_ligand_batch_empty_upload")
 
@@ -166,6 +207,24 @@ def test_prepare_ligand_batch_rejects_empty_upload(workspace_tempdir):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Uploaded file is empty"
+
+
+def test_prepare_ligand_batch_rejects_non_utf8_smiles_upload(workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_non_utf8_smiles")
+
+    response = client.post(
+        "/prepare_ligand_batch",
+        data={
+            "filename": "bad_encoding_library",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("bad_encoding_library.smi", io.BytesIO(b"\xff\xfe\xfa"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert "utf-8" in response.json()["detail"].lower() or "text" in response.json()["detail"].lower()
 
 
 def test_prepare_ligand_batch_rejects_invalid_extension():
@@ -248,6 +307,30 @@ def test_prepare_ligand_batch_rejects_too_many_generated_pdbqt_bytes(monkeypatch
     assert response.status_code == 413
     detail = response.json()["detail"]
     assert detail["message"] == "Batch request generated too much output data for the current prototype limit."
+
+
+def test_prepare_ligand_batch_preserves_500_for_unexpected_internal_failure(monkeypatch, workspace_tempdir):
+    workspace_tempdir(app_module, "prepare_ligand_batch_internal_failure")
+    patch_successful_batch_preparation(monkeypatch)
+
+    def fail_zip_response(zip_basename, files_to_write, summary_payload):
+        raise RuntimeError("simulated internal failure")
+
+    monkeypatch.setattr(app_module, "create_zip_response", fail_zip_response)
+
+    response = client.post(
+        "/prepare_ligand_batch",
+        data={
+            "filename": "library",
+            "charge_model": "zero",
+        },
+        files={
+            "file": ("library.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.status_code != 400
 
 
 def test_prepare_ligand_batch_reports_failed_count_for_invalid_smiles(workspace_tempdir):

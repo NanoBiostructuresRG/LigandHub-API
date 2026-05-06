@@ -2,6 +2,22 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.8] - 2026-05-06
+
+### Added
+
+- Added endpoint regression tests confirming unexpected internal failures still return HTTP 500 for ligand preparation workflows.
+
+### Fixed
+
+- Ensured non-UTF-8 SMILES text uploads to `/prepare_ligand` return HTTP 400 instead of unexpected HTTP 500 errors.
+- Ensured non-UTF-8 batch SMILES library uploads to `/prepare_ligand_batch` return HTTP 400 instead of unexpected HTTP 500 errors.
+
+### Notes
+
+- Preserved the existing successful ligand preparation and batch preparation behavior.
+- This release only hardens expected error handling; it does not add new API features.
+
 ## [v0.1.7] - 2026-05-06
 
 ### Added

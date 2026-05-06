@@ -13,8 +13,14 @@ def load_molecule_from_file(input_path: str, original_filename: str):
     )
 
     if ext in {".smi", ".smiles", ".txt"}:
-        with open(input_path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f if line.strip()]
+        try:
+            with open(input_path, "r", encoding="utf-8") as f:
+                lines = [line.strip() for line in f if line.strip()]
+        except UnicodeDecodeError:
+            raise HTTPException(
+                status_code=400,
+                detail="SMILES text files must be valid UTF-8 text",
+            )
         if not lines:
             raise HTTPException(status_code=400, detail="Empty SMILES file")
 
