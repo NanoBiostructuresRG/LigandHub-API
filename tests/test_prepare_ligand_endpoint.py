@@ -63,3 +63,31 @@ def test_prepare_ligand_endpoint_returns_pdbqt_for_ethanol_sdf(workspace_tempdir
     assert "ROOT" in pdbqt_text
     assert "ENDROOT" in pdbqt_text
     assert "TORSDOF" in pdbqt_text
+
+
+def test_prepare_ligand_endpoint_returns_pdbqt_for_ethanol_mol2(workspace_tempdir):
+    fixture_path = Path(__file__).parent / "fixtures" / "ethanol.mol2"
+    workspace_tempdir(app_module, "prepare_ligand_endpoint_mol2")
+
+    with fixture_path.open("rb") as ligand_file:
+        response = client.post(
+            "/prepare_ligand",
+            data={
+                "filename": "ethanol_mol2",
+                "charge_model": "zero",
+            },
+            files={
+                "file": ("ethanol.mol2", ligand_file, "chemical/x-mol2"),
+            },
+        )
+
+    assert response.status_code == 200
+    assert ".pdbqt" in response.headers["Content-Disposition"]
+
+    pdbqt_text = response.text
+    pdbqt_lines = pdbqt_text.splitlines()
+
+    assert any(line.startswith(("ATOM", "HETATM")) for line in pdbqt_lines)
+    assert "ROOT" in pdbqt_text
+    assert "ENDROOT" in pdbqt_text
+    assert "TORSDOF" in pdbqt_text

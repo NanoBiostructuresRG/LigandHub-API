@@ -38,6 +38,15 @@ def test_load_molecule_from_file_reads_pdb_fixture():
     assert warnings == []
 
 
+def test_load_molecule_from_file_reads_mol2_fixture():
+    mol, warnings = load_molecule_from_file("tests/fixtures/ethanol.mol2", "ethanol.mol2")
+
+    assert mol is not None
+    assert mol.GetNumAtoms() == 9
+    assert mol.GetNumConformers() == 1
+    assert warnings == []
+
+
 def test_load_molecule_from_file_rejects_empty_smiles_file():
     empty_file = output_path("empty.smi")
     empty_file.write_text("", encoding="utf-8")
@@ -91,6 +100,17 @@ def test_load_molecule_from_file_rejects_invalid_pdb_file():
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "Could not read molecule from PDB"
+
+
+def test_load_molecule_from_file_rejects_invalid_mol2_file():
+    invalid_file = output_path("invalid.mol2")
+    invalid_file.write_text("not a mol2\n", encoding="utf-8")
+
+    with pytest.raises(HTTPException) as exc_info:
+        load_molecule_from_file(str(invalid_file), "invalid.mol2")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Could not read molecule from MOL2"
 
 
 def test_load_molecule_from_file_rejects_supported_extension_with_wrong_content():
