@@ -33,7 +33,10 @@ def load_molecule_from_file(input_path: str, original_filename: str):
         return mol, warnings
 
     if ext == ".sdf":
-        supplier = Chem.SDMolSupplier(input_path, sanitize=False, removeHs=False)
+        try:
+            supplier = Chem.SDMolSupplier(input_path, sanitize=False, removeHs=False)
+        except OSError:
+            raise HTTPException(status_code=400, detail="Could not read molecule from SDF")
         mol = next((m for m in supplier if m is not None), None)
         if mol is None:
             raise HTTPException(status_code=400, detail="Could not read molecule from SDF")
