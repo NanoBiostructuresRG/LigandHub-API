@@ -23,12 +23,19 @@ def detect_docking_results_format(original_filename: str) -> str:
 
 
 def export_docking_results_to_sdf_string(input_path: str, docking_format: str) -> str:
-    pdbqt_mol = PDBQTMolecule.from_file(
-        input_path,
-        is_dlg=(docking_format == "dlg"),
-        skip_typing=True,
-    )
-    rdkit_mol_list = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+    try:
+        pdbqt_mol = PDBQTMolecule.from_file(
+            input_path,
+            is_dlg=(docking_format == "dlg"),
+            skip_typing=True,
+        )
+        rdkit_mol_list = RDKitMolCreate.from_pdbqt_mol(pdbqt_mol)
+    except (RuntimeError, ValueError, OSError):
+        raise HTTPException(
+            status_code=400,
+            detail="Meeko could not reconstruct any molecule from the docking results",
+        )
+
     valid_mols = [mol for mol in rdkit_mol_list if mol is not None]
 
     if not valid_mols:
