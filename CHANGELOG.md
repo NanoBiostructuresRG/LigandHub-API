@@ -2,6 +2,19 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.9] - 2026-05-06
+
+### Added
+
+- Added a real `.mol2` ligand fixture for endpoint and molecule-loading regression coverage.
+- Added unit coverage confirming `molecule_io.load_molecule_from_file` reads valid `.mol2` inputs and rejects invalid `.mol2` files with HTTP 400.
+- Added endpoint coverage confirming `POST /prepare_ligand` accepts a valid `.mol2` ligand and returns PDBQT output.
+
+### Notes
+
+- No public API behavior or successful endpoint contract changed.
+- Batch ligand preparation remains limited to `.smi`, `.smiles`, and `.txt` libraries.
+
 ## [v0.1.8] - 2026-05-06
 
 ### Added
