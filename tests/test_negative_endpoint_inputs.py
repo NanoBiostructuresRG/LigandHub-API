@@ -317,3 +317,71 @@ def test_convert_pdbqt_to_sdf_rejects_invalid_extension():
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported docking results format. Use PDBQT or DLG files."
+
+
+def test_convert_pdbqt_to_sdf_rejects_invalid_pdbqt_content(workspace_tempdir):
+    workspace_tempdir(app_module, "convert_invalid_pdbqt")
+
+    response = client.post(
+        "/convert_pdbqt_to_sdf",
+        data={
+            "filename": "invalid",
+        },
+        files={
+            "file": ("invalid.pdbqt", io.BytesIO(b"not a valid pdbqt file\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] != "Unexpected server error"
+
+
+def test_convert_pdbqt_to_sdf_rejects_invalid_dlg_content(workspace_tempdir):
+    workspace_tempdir(app_module, "convert_invalid_dlg")
+
+    response = client.post(
+        "/convert_pdbqt_to_sdf",
+        data={
+            "filename": "invalid",
+        },
+        files={
+            "file": ("invalid.dlg", io.BytesIO(b"not a valid dlg file\n"), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] != "Unexpected server error"
+
+
+def test_convert_pdbqt_to_sdf_rejects_empty_pdbqt_file(workspace_tempdir):
+    workspace_tempdir(app_module, "convert_empty_pdbqt")
+
+    response = client.post(
+        "/convert_pdbqt_to_sdf",
+        data={
+            "filename": "empty",
+        },
+        files={
+            "file": ("empty.pdbqt", io.BytesIO(b""), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] != "Unexpected server error"
+
+
+def test_convert_pdbqt_to_sdf_rejects_empty_dlg_file(workspace_tempdir):
+    workspace_tempdir(app_module, "convert_empty_dlg")
+
+    response = client.post(
+        "/convert_pdbqt_to_sdf",
+        data={
+            "filename": "empty",
+        },
+        files={
+            "file": ("empty.dlg", io.BytesIO(b""), "text/plain"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] != "Unexpected server error"

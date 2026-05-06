@@ -2,6 +2,21 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.7] - 2026-05-06
+
+### Added
+
+- Added endpoint regression tests for invalid and empty docking result files.
+
+### Fixed
+
+- Improved negative input handling for docking result conversion.
+- Ensured invalid or empty `.pdbqt` and `.dlg` uploads to `/convert_pdbqt_to_sdf` return HTTP 400 instead of unexpected HTTP 500 errors.
+
+### Notes
+
+- Preserved the existing public API contract and successful conversion behavior.
+
 ## [v0.1.6] - 2026-05-05
 
 ### Added
