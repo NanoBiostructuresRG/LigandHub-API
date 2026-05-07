@@ -4,7 +4,7 @@ Backend API for ligand preparation and docking-result conversion in LigandHub.
 
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
-Current version: `v0.1.10`.
+Current version: `v0.1.11`.
 
 ## What This API Does
 
@@ -199,6 +199,8 @@ Form fields:
 - `energy_minimization`: optional `true` or `false`; when omitted, minimization is enabled for SMILES/2D inputs and disabled for 3D input files
 - `minimization_max_iters`: optional integer from `1` to `2000`, default `1000`
 
+Malformed form parameter types, such as non-boolean values for `merge_h` or non-integer values for `minimization_max_iters`, are rejected by FastAPI/Pydantic with HTTP 422 before ligand preparation starts.
+
 Energy minimization uses MMFF94 when parameters are available and falls back to UFF when MMFF94 cannot be assigned. If neither force field can be applied, ligand preparation continues with the current geometry.
 
 Example:
@@ -264,6 +266,8 @@ Form fields:
 - `charge_model`: `gasteiger`, `nagl`, `espaloma`, or `zero`
 - `energy_minimization`: optional `true` or `false`; when omitted, minimization is enabled for generated 3D geometries
 - `minimization_max_iters`: optional integer from `1` to `2000`, default `1000`
+
+Malformed form parameter types, such as non-boolean values for `merge_h` or non-integer values for `minimization_max_iters`, are rejected by FastAPI/Pydantic with HTTP 422 before batch preparation starts.
 
 Energy minimization uses MMFF94 when parameters are available and falls back to UFF when MMFF94 cannot be assigned. If neither force field can be applied, batch processing continues with the current geometry for that ligand state.
 
