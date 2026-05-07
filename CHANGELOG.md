@@ -2,6 +2,17 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.14] - 2026-05-07
+
+### Changed
+
+- Updated citation metadata version for the final Zenodo archival release of the v0.1.x ligand preparation baseline.
+
+### Notes
+
+- Prepared the v0.1.x baseline for Zenodo capture through a new GitHub Release.
+- No production code or API behavior changed.
+
 ## [v0.1.13] - 2026-05-07
 
 ### Added
