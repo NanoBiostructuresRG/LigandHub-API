@@ -2,7 +2,7 @@ cff-version: "1.2.0"
 message: "If you use this software, please cite it using the metadata from this file."
 type: software
 title: "LigandHub-API"
-version: "0.1.13"
+version: "0.1.14"
 date-released: "2026-05-07"
 authors:
   - family-names: "Contreras-Torres"
