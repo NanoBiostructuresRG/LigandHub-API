@@ -1,0 +1,27 @@
+cff-version: "1.2.0"
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+title: "LigandHub-API"
+version: "0.1.13"
+date-released: "2026-05-07"
+authors:
+  - family-names: "Contreras-Torres"
+    given-names: "Flavio F."
+    orcid: "https://orcid.org/0000-0003-2375-131X"
+    affiliation: "Tecnologico de Monterrey"
+repository-code: "https://github.com/NanoBiostructuresRG/LigandHub-API"
+url: "https://github.com/NanoBiostructuresRG/LigandHub-API"
+license: "MIT"
+abstract: >-
+  LigandHub-API is a FastAPI-based service for molecular ligand preparation
+  workflows for AutoDock Vina, including single-ligand and batch ligand
+  preparation, molecular format handling, controlled validation errors, and
+  Docker-based deployment support.
+keywords:
+  - molecular docking
+  - AutoDock Vina
+  - ligand preparation
+  - cheminformatics
+  - FastAPI
+  - RDKit
+  - Meeko
