@@ -2,6 +2,18 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.12] - 2026-05-06
+
+### Added
+
+- Added GitHub Actions CI validation for Docker image builds.
+- Added a manual `workflow_dispatch` trigger for the existing CI workflow.
+
+### Notes
+
+- No production code or API behavior changed.
+- Docker images are built for validation only; CI does not publish images or deploy the service.
+
 ## [v0.1.11] - 2026-05-06
 
 ### Added

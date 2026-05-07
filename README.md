@@ -4,7 +4,7 @@ Backend API for ligand preparation and docking-result conversion in LigandHub.
 
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
-Current version: `v0.1.11`.
+Current version: `v0.1.12`.
 
 ## What This API Does
 
@@ -420,7 +420,7 @@ Run tests:
 pytest
 ```
 
-Pytest is also run through GitHub Actions CI on push and pull requests.
+Pytest is also run through GitHub Actions CI on push and pull requests. CI also validates that the Docker image builds successfully.
 
 ## Render Deployment Notes
 
