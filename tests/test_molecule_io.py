@@ -47,6 +47,18 @@ def test_load_molecule_from_file_reads_mol2_fixture():
     assert warnings == []
 
 
+def test_load_molecule_from_file_reads_mol2_with_indented_section_headers():
+    mol, warnings = load_molecule_from_file(
+        "tests/fixtures/benzene_leading_space_headers.mol2",
+        "benzene_leading_space_headers.mol2",
+    )
+
+    assert mol is not None
+    assert mol.GetNumAtoms() == 12
+    assert mol.GetNumConformers() == 1
+    assert warnings == []
+
+
 def test_load_molecule_from_file_rejects_empty_smiles_file():
     empty_file = output_path("empty.smi")
     empty_file.write_text("", encoding="utf-8")
@@ -110,7 +122,22 @@ def test_load_molecule_from_file_rejects_invalid_mol2_file():
         load_molecule_from_file(str(invalid_file), "invalid.mol2")
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "Could not read molecule from MOL2"
+    assert "Could not read molecule from MOL2" in exc_info.value.detail
+
+
+def test_load_molecule_from_file_reports_gaff_like_mol2_atom_types():
+    with pytest.raises(HTTPException) as exc_info:
+        load_molecule_from_file(
+            "tests/fixtures/benzene_gaff_like_atom_types.mol2",
+            "benzene_gaff_like_atom_types.mol2",
+        )
+
+    assert exc_info.value.status_code == 400
+    detail = exc_info.value.detail
+    assert "Could not read molecule from MOL2" in detail
+    assert "ca" in detail
+    assert "ha" in detail
+    assert "C.ar" in detail
 
 
 def test_load_molecule_from_file_rejects_supported_extension_with_wrong_content():
