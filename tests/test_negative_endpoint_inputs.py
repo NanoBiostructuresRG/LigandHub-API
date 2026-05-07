@@ -95,6 +95,32 @@ def test_prepare_ligand_rejects_minimization_max_iters_out_of_range():
     assert "'minimization_max_iters' must be between 1 and 2000" == response.json()["detail"]
 
 
+def test_prepare_ligand_rejects_malformed_form_parameter_types():
+    cases = [
+        ("merge_h", "notbool", "bool_parsing"),
+        ("energy_minimization", "notbool", "bool_parsing"),
+        ("minimization_max_iters", "abc", "int_parsing"),
+    ]
+
+    for field_name, field_value, error_type in cases:
+        response = client.post(
+            "/prepare_ligand",
+            data={
+                "filename": "ethanol",
+                "charge_model": "zero",
+                field_name: field_value,
+            },
+            files={
+                "file": ("ethanol.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+            },
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail[0]["type"] == error_type
+        assert field_name in detail[0]["loc"]
+
+
 def test_prepare_ligand_rejects_invalid_extension(workspace_tempdir):
     workspace_tempdir(app_module, "prepare_ligand_invalid_extension")
 
@@ -241,6 +267,32 @@ def test_prepare_ligand_batch_rejects_invalid_extension():
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Batch processing requires a .smi, .smiles, or .txt SMILES library file"
+
+
+def test_prepare_ligand_batch_rejects_malformed_form_parameter_types():
+    cases = [
+        ("merge_h", "notbool", "bool_parsing"),
+        ("energy_minimization", "notbool", "bool_parsing"),
+        ("minimization_max_iters", "abc", "int_parsing"),
+    ]
+
+    for field_name, field_value, error_type in cases:
+        response = client.post(
+            "/prepare_ligand_batch",
+            data={
+                "filename": "library",
+                "charge_model": "zero",
+                field_name: field_value,
+            },
+            files={
+                "file": ("library.smi", io.BytesIO(b"CCO ethanol\n"), "text/plain"),
+            },
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail[0]["type"] == error_type
+        assert field_name in detail[0]["loc"]
 
 
 def test_prepare_ligand_batch_rejects_upload_over_size_limit(monkeypatch, workspace_tempdir):

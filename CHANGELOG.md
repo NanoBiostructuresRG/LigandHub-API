@@ -2,6 +2,17 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.11] - 2026-05-06
+
+### Added
+
+- Added endpoint regression tests for malformed ligand preparation form parameter types.
+
+### Notes
+
+- Documented and tested FastAPI/Pydantic HTTP 422 validation behavior for malformed `merge_h`, `energy_minimization`, and `minimization_max_iters` form values.
+- No production endpoint logic or successful ligand preparation behavior changed.
+
 ## [v0.1.10] - 2026-05-06
 
 ### Added
