@@ -4,7 +4,7 @@ Backend API for ligand preparation and docking-result conversion in LigandHub.
 
 This service is built with FastAPI and is intended to run on Render. It prepares ligands for AutoDock Vina workflows using RDKit, Meeko, and `molscrub`, and it can also convert docking outputs back to SDF.
 
-Current version: `v0.1.9`.
+Current version: `v0.1.10`.
 
 ## What This API Does
 
@@ -29,6 +29,15 @@ Supported input formats:
 - `.smi`
 - `.smiles`
 - `.txt`
+
+MOL2 compatibility note:
+
+- MOL2 input is supported when RDKit can read the file and the atom typing is compatible.
+- Sybyl/Corina-like atom types such as `C.ar`, `C.3`, `N.am`, `O.2`, and `H` are expected.
+- Some MOL2 files generated with GAFF/Amber-like atom types such as `ca` or `ha` may fail to parse.
+- When MOL2 parsing fails, the API returns HTTP 400 with a diagnostic message instead of treating the upload as a server error.
+- If a MOL2 file is not accepted, convert it to SDF, SMILES, or a MOL2 variant with compatible atom types before uploading.
+- The API safely normalizes leading spaces before `@<TRIPOS>` section headers; it does not perform broad chemical atom-type conversion.
 
 Pipeline:
 

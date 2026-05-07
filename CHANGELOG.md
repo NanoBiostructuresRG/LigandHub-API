@@ -2,6 +2,22 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.10] - 2026-05-06
+
+### Added
+
+- Added regression fixtures and tests for MOL2 files with indented `@<TRIPOS>` section headers and GAFF/Amber-like atom types.
+
+### Changed
+
+- Added lightweight MOL2 section-header normalization for leading spaces before `@<TRIPOS>` markers.
+- Improved MOL2 parse failure diagnostics to mention possible unsupported atom types and Sybyl-like atom typing expectations.
+
+### Notes
+
+- No public API contract expansion was introduced.
+- No broad chemical atom-type conversion was added for GAFF/Amber-like MOL2 files.
+
 ## [v0.1.9] - 2026-05-06
 
 ### Added
