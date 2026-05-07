@@ -2,6 +2,17 @@
 
 All notable changes to LigandHub-API will be documented in this file.
 
+## [v0.1.13] - 2026-05-07
+
+### Added
+
+- Added `CITATION.cff` with citation metadata for Zenodo archival preparation.
+
+### Notes
+
+- Prepared the final v0.1.x ligand preparation baseline for archival.
+- No production code or API behavior changed.
+
 ## [v0.1.12] - 2026-05-06
 
 ### Added
